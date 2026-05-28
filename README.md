@@ -93,6 +93,19 @@ pip install -r requirements.txt
 python -m app.main
 ```
 
+Run the FastAPI backend service:
+
+```bash
+cd backend
+uvicorn app.main:app --reload
+```
+
+Then open:
+
+```text
+http://localhost:8000/docs
+```
+
 The final Docker workflow will be:
 
 ```bash
@@ -142,6 +155,31 @@ Where is the Agent execution flow implemented?
 Where is configuration loaded?
 How is the tool registry implemented?
 ```
+
+## FastAPI Backend APIs 🚀
+
+Phase 3 exposes the Agent and RAG retrieval flow through FastAPI:
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/health` | Check service status |
+| `POST` | `/api/chat` | Ask the Agent a codebase question |
+| `POST` | `/api/projects/index` | Index a local project for retrieval |
+| `POST` | `/api/projects/search` | Search indexed code chunks |
+
+Example chat request:
+
+```json
+{
+  "message": "Where is the API router implemented?",
+  "project_path": "/path/to/project",
+  "provider": "openai",
+  "model": "gpt-5.2"
+}
+```
+
+API requests can override the default provider/model per call. Full endpoint schemas, response examples, and error codes are documented in [API](docs/api.md).
+
 ## Documentation
 
 - [Architecture](docs/architecture.md)
