@@ -22,11 +22,12 @@ def test_deepseek_provider_uses_default_model(monkeypatch: pytest.MonkeyPatch) -
         return {"choices": [{"message": {"content": "deepseek ok"}}]}
 
     monkeypatch.setattr(deepseek_provider, "post_chat_completion", fake_post_chat_completion)
-    settings = Settings(DEEPSEEK_API_KEY="test-key", DEEPSEEK_MODEL="deepseek-chat", _env_file=None)
+    settings = Settings(DEEPSEEK_API_KEY="test-key", DEEPSEEK_MODEL="deepseek-v4-pro", _env_file=None)
     provider = DeepSeekProvider(settings=settings)
 
     answer = provider.chat([{"role": "user", "content": "hello"}])
 
     assert answer == "deepseek ok"
-    assert captured["model"] == "deepseek-chat"
+    assert captured["model"] == "deepseek-v4-pro"
     assert captured["api_key"] == "test-key"
+

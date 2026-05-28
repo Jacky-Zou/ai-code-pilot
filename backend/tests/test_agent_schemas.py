@@ -17,7 +17,7 @@ def test_agent_action_schema_for_tool_call() -> None:
 
 
 def test_agent_response_defaults() -> None:
-    response = AgentResponse(answer="ok", provider="openai", model="gpt-4o-mini")
+    response = AgentResponse(answer="ok", provider="openai", model="gpt-5.2")
 
     assert response.tool_calls == []
     assert response.references == []
@@ -27,3 +27,4 @@ def test_tool_result_can_store_error() -> None:
     result = ToolResult(name="read_file", error="missing")
 
     assert result.error == "missing"
+

@@ -34,7 +34,8 @@ def test_message_to_api_dict() -> None:
 
 
 def test_llm_response_schema() -> None:
-    response = LLMResponse(content="answer", provider="openai", model="gpt-4o-mini")
+    response = LLMResponse(content="answer", provider="openai", model="gpt-5.2")
 
     assert response.content == "answer"
     assert response.raw is None
+
