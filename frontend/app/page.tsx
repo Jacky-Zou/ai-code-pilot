@@ -8,9 +8,9 @@ import {
   GitBranch,
   Play,
   Search,
-  Send,
-  Settings2
+  Send
 } from "lucide-react";
+import { ProviderSelector } from "@/components/ProviderSelector";
 
 const references = [
   {
@@ -50,22 +50,7 @@ export default function Home() {
 
       <section className="mx-auto grid max-w-7xl gap-5 px-6 py-6 lg:grid-cols-[300px_minmax(0,1fr)_340px]">
         <aside className="space-y-4">
-          <section className="rounded-lg border border-border bg-panel p-4 shadow-soft">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <Settings2 className="h-4 w-4 text-primary" aria-hidden="true" />
-              Model
-            </div>
-            <label className="mb-3 block text-xs font-medium uppercase text-muted">Provider</label>
-            <select className="mb-4 h-10 w-full rounded-md border border-border bg-white px-3 text-sm">
-              <option>OpenAI</option>
-              <option>DeepSeek</option>
-            </select>
-            <label className="mb-3 block text-xs font-medium uppercase text-muted">Model</label>
-            <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm">
-              <option>gpt-5.2</option>
-              <option>deepseek-v4-pro</option>
-            </select>
-          </section>
+          <ProviderSelector />
 
           <section className="rounded-lg border border-border bg-panel p-4 shadow-soft">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
