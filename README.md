@@ -56,14 +56,14 @@ AICodePilot uses OpenAI / ChatGPT by default:
 
 ```env
 LLM_PROVIDER=openai
-LLM_MODEL=gpt-4o-mini
+LLM_MODEL=gpt-5.2
 ```
 
 DeepSeek is supported through the same provider abstraction:
 
 ```env
 LLM_PROVIDER=deepseek
-LLM_MODEL=deepseek-chat
+LLM_MODEL=deepseek-v4-pro
 ```
 
 API requests may override the default provider and model per request.
@@ -123,6 +123,25 @@ List Python files in this project
 Read README.md
 Search FastAPI in this project
 ```
+
+## RAG Code Retrieval
+
+Phase 2 adds a local code retrieval loop:
+
+- `ProjectIndexer` scans safe text/code files.
+- `CodeChunker` creates line-based chunks with file and line metadata.
+- `OpenAIEmbeddingClient` supports production embeddings.
+- `LocalHashEmbeddingClient` supports offline tests and demos.
+- `VectorStore` ranks chunks by cosine similarity and can persist JSON indexes.
+- `retrieve_code` lets the Agent answer code location questions with references.
+
+Example retrieval-oriented questions:
+
+```text
+Where is the Agent execution flow implemented?
+Where is configuration loaded?
+How is the tool registry implemented?
+```
 ## Documentation
 
 - [Architecture](docs/architecture.md)
@@ -139,4 +158,5 @@ Search FastAPI in this project
 ## License
 
 This project is released under the MIT License. See [LICENSE](LICENSE).
+
 

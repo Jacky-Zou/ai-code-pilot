@@ -39,14 +39,14 @@ Status values: TODO, IN_PROGRESS, DONE, BLOCKED.
 
 | ID | Task | Description | Files | Validation | Status |
 |---|---|---|---|---|---|
-| P2-T01 | Implement project scanner | Scan text/code files and ignore irrelevant directories | `backend/app/rag/indexer.py` | Scanner tests pass | TODO |
-| P2-T02 | Implement code chunker | Split files by line ranges with metadata | `backend/app/rag/chunker.py` | Chunker tests pass | TODO |
-| P2-T03 | Implement embedding client | Support default OpenAI embeddings and provider extension | `backend/app/rag/embeddings.py` | Missing key handled clearly; optional live call | TODO |
-| P2-T04 | Implement vector store | Add/search/save/load vector index with chunk metadata | `backend/app/rag/vector_store.py` | Vector store tests pass | TODO |
-| P2-T05 | Implement retriever | Query Top-K code chunks with path, line, score | `backend/app/rag/retriever.py` | Retriever tests pass | TODO |
-| P2-T06 | Connect RAG to Agent | Add `retrieve_code(query, top_k)` tool | `backend/app/tools/*`, `backend/app/agent/*` | Agent can call retrieval tool | TODO |
-| P2-T07 | Update RAG docs | Document RAG design and architecture changes | `docs/rag-design.md`, `docs/architecture.md`, `README.md`, `docs/todolist.md` | Docs updated | TODO |
-| P2-T08 | Commit Phase 2 | Commit validated RAG implementation | repository | `git log --oneline -1` shows Phase 2 commit | TODO |
+| P2-T01 | Implement project scanner | Scan text/code files and ignore irrelevant directories | `backend/app/rag/indexer.py` | Scanner tests pass | DONE |
+| P2-T02 | Implement code chunker | Split files by line ranges with metadata | `backend/app/rag/chunker.py` | Chunker tests pass | DONE |
+| P2-T03 | Implement embedding client | Support default OpenAI embeddings and provider extension | `backend/app/rag/embeddings.py` | Missing key handled clearly; optional live call | DONE |
+| P2-T04 | Implement vector store | Add/search/save/load vector index with chunk metadata | `backend/app/rag/vector_store.py` | Vector store tests pass | DONE |
+| P2-T05 | Implement retriever | Query Top-K code chunks with path, line, score | `backend/app/rag/retriever.py` | Retriever tests pass | DONE |
+| P2-T06 | Connect RAG to Agent | Add `retrieve_code(query, top_k)` tool | `backend/app/tools/*`, `backend/app/agent/*` | Agent can call retrieval tool | DONE |
+| P2-T07 | Update RAG docs | Document RAG design and architecture changes | `docs/rag-design.md`, `docs/architecture.md`, `README.md`, `docs/todolist.md` | Docs updated | DONE |
+| P2-T08 | Commit Phase 2 | Commit validated RAG implementation | repository | `git log --oneline -1` shows Phase 2 commit | DONE |
 
 ## Phase 3: FastAPI Backend Service
 
@@ -126,6 +126,15 @@ Status values: TODO, IN_PROGRESS, DONE, BLOCKED.
 | P8-T08 | Final validation | Run tests, lint, type checks, Docker build | all | `pytest`, `ruff check .`, `black --check .`, `mypy backend/app`, `docker compose up --build` | TODO |
 | P8-T09 | Final commit | Commit final documentation | repository | `git log --oneline -1` shows final docs commit | TODO |
 | P8-T10 | Tag release | Create v1.0.0 release tag and push | git tag/remote | `git tag --list v1.0.0` | TODO |
+
+
+
+
+
+
+
+
+
 
 
 

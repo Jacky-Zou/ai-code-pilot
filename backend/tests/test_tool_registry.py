@@ -8,6 +8,7 @@ from app.tools.base import BaseTool
 from app.tools.file_tools import ListFilesTool, ReadFileTool
 from app.tools.registry import ToolRegistry, create_default_registry
 from app.tools.search_tools import SearchTextTool
+from app.tools.rag_tools import RetrieveCodeTool
 
 
 class Args(BaseModel):
@@ -62,3 +63,6 @@ def test_default_registry_contains_phase_1_tools() -> None:
     assert isinstance(registry.get("list_files"), ListFilesTool)
     assert isinstance(registry.get("read_file"), ReadFileTool)
     assert isinstance(registry.get("search_text"), SearchTextTool)
+    assert isinstance(registry.get("retrieve_code"), RetrieveCodeTool)
+
+

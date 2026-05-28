@@ -51,3 +51,21 @@ def test_executor_calls_tool_and_summarizes(tmp_path: Path) -> None:
     assert response.references[0].file_path == "README.md"
     assert response.references[0].line_number == 1
     assert len(provider.calls) == 2
+
+
+def test_executor_calls_retrieve_code_tool(tmp_path: Path) -> None:
+    (tmp_path / "agent.py").write_text("class AgentExecutor:\n    pass", encoding="utf-8")
+    provider = FakeProvider(
+        [
+            '{"type":"action","tool":"retrieve_code","arguments":{"query":"AgentExecutor"}}',
+            '{"type":"final","answer":"Agent flow is in agent.py"}',
+        ]
+    )
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+
+    response = executor.run(AgentRequest(message="where is agent flow", project_path=str(tmp_path)))
+
+    assert response.answer == "Agent flow is in agent.py"
+    assert response.tool_calls[0].name == "retrieve_code"
+    assert response.references[0].file_path == "agent.py"
+    assert response.references[0].line_number == 1

@@ -10,7 +10,7 @@ from app.llm.base import BaseLLMProvider
 from app.llm.factory import LLMProviderFactory
 from app.tools.registry import ToolRegistry, create_default_registry
 
-_PROJECT_PATH_TOOLS = {"list_files", "read_file", "search_text"}
+_PROJECT_PATH_TOOLS = {"list_files", "read_file", "search_text", "retrieve_code"}
 
 
 class AgentExecutor:
@@ -99,6 +99,16 @@ class AgentExecutor:
                 )
                 for match in result.get("matches", [])
             ]
+        if tool_result.name == "retrieve_code":
+            return [
+                CodeReference(
+                    file_path=str(match["file_path"]),
+                    line_number=int(match["start_line"]),
+                    snippet=str(match["content"]),
+                    score=float(match["score"]),
+                )
+                for match in result.get("matches", [])
+            ]
         if tool_result.name == "read_file":
             return [
                 CodeReference(
@@ -107,3 +117,4 @@ class AgentExecutor:
                 )
             ]
         return []
+

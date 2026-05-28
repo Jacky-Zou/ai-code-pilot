@@ -37,8 +37,8 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.app_env == "development"
     assert settings.log_level == "INFO"
     assert settings.llm_provider == "openai"
-    assert settings.openai_model == "gpt-4o-mini"
-    assert settings.deepseek_model == "deepseek-chat"
+    assert settings.openai_model == "gpt-5.2"
+    assert settings.deepseek_model == "deepseek-v4-pro"
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.vector_store_path == Path("data/vector_store")
 
@@ -62,8 +62,8 @@ def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_default_model_for_provider() -> None:
     settings = Settings(_env_file=None)
 
-    assert settings.default_model_for_provider("openai") == "gpt-4o-mini"
-    assert settings.default_model_for_provider("deepseek") == "deepseek-chat"
+    assert settings.default_model_for_provider("openai") == "gpt-5.2"
+    assert settings.default_model_for_provider("deepseek") == "deepseek-v4-pro"
 
 
 def test_default_model_rejects_unknown_provider() -> None:
@@ -71,3 +71,4 @@ def test_default_model_rejects_unknown_provider() -> None:
 
     with pytest.raises(ValueError, match="Unsupported LLM provider"):
         settings.default_model_for_provider("unknown")
+
