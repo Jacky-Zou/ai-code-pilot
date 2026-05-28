@@ -52,7 +52,7 @@ Status values: TODO, IN_PROGRESS, DONE, BLOCKED.
 
 | ID | Task | Description | Files | Validation | Status |
 |---|---|---|---|---|---|
-| P3-T01 | Implement API schemas | Define request/response models for health, chat, index, search | `backend/app/api/schemas.py` | Schema tests pass | TODO |
+| P3-T01 | Implement API schemas | Define request/response models for health, chat, index, search | `backend/app/api/schemas.py` | Schema tests pass | DONE |
 | P3-T02 | Implement chat router | Expose `/api/chat` | `backend/app/api/routes_chat.py` | API tests pass | TODO |
 | P3-T03 | Implement project router | Expose `/api/projects/index` and `/api/projects/search` | `backend/app/api/routes_project.py` | API tests pass | TODO |
 | P3-T04 | Implement FastAPI main | Wire routers and health endpoint | `backend/app/main.py` | `uvicorn app.main:app --reload` starts | TODO |
@@ -126,6 +126,8 @@ Status values: TODO, IN_PROGRESS, DONE, BLOCKED.
 | P8-T08 | Final validation | Run tests, lint, type checks, Docker build | all | `pytest`, `ruff check .`, `black --check .`, `mypy backend/app`, `docker compose up --build` | TODO |
 | P8-T09 | Final commit | Commit final documentation | repository | `git log --oneline -1` shows final docs commit | TODO |
 | P8-T10 | Tag release | Create v1.0.0 release tag and push | git tag/remote | `git tag --list v1.0.0` | TODO |
+
+
 
 
 
