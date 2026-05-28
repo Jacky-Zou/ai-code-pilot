@@ -18,6 +18,7 @@ build/
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 data/*
 !data/.gitkeep
 chroma/
