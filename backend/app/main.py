@@ -7,7 +7,7 @@ from app.agent.agent import AICodePilotAgent
 from app.api.routes_chat import router as chat_router
 from app.api.routes_project import router as project_router
 from app.api.schemas import HealthResponse
-from app.core.exceptions import AICodePilotError
+from app.core.exceptions import AICodePilotError, register_exception_handlers
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -21,6 +21,7 @@ def create_app() -> FastAPI:
         description="LLM Agent based AI codebase understanding and development assistant.",
         version="0.1.0",
     )
+    register_exception_handlers(application)
     application.include_router(chat_router)
     application.include_router(project_router)
 

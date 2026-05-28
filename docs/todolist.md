@@ -56,7 +56,7 @@ Status values: TODO, IN_PROGRESS, DONE, BLOCKED.
 | P3-T02 | Implement chat router | Expose `/api/chat` | `backend/app/api/routes_chat.py` | API tests pass | DONE |
 | P3-T03 | Implement project router | Expose `/api/projects/index` and `/api/projects/search` | `backend/app/api/routes_project.py` | API tests pass | DONE |
 | P3-T04 | Implement FastAPI main | Wire routers and health endpoint | `backend/app/main.py` | `uvicorn app.main:app --reload` starts | DONE |
-| P3-T05 | Implement exceptions | Add unified exception classes and handlers | `backend/app/core/exceptions.py` | Error response tests pass | TODO |
+| P3-T05 | Implement exceptions | Add unified exception classes and handlers | `backend/app/core/exceptions.py` | Error response tests pass | DONE |
 | P3-T06 | Add API tests | Test health, chat, project index, search | `backend/tests/test_api.py` | `pytest backend/tests/test_api.py` | TODO |
 | P3-T07 | Update API docs | Document endpoints and examples | `docs/api.md`, `README.md`, `docs/todolist.md` | Docs updated | TODO |
 | P3-T08 | Commit Phase 3 | Commit validated FastAPI service | repository | `git log --oneline -1` shows Phase 3 commit | TODO |
