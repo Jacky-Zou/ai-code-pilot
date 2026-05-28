@@ -4,7 +4,7 @@ AICodePilot is an AI coding assistant for codebase understanding and development
 
 Full title: **AICodePilot: LLM Agent based AI codebase understanding and development assistant**.
 
-## Core Features
+## Core Features ✨
 
 - Codebase structure analysis and project file exploration.
 - Safe local file reading and text search tools.
@@ -16,7 +16,7 @@ Full title: **AICodePilot: LLM Agent based AI codebase understanding and develop
 - Advanced development tools including log analysis, safe command execution, and patch suggestions.
 - Docker and docker-compose deployment.
 
-## Tech Stack
+## Tech Stack 🧰
 
 Backend:
 
@@ -50,7 +50,7 @@ Deployment:
 - docker-compose
 - `.env` based configuration
 
-## Model Providers
+## Model Providers 🔁
 
 AICodePilot uses OpenAI / ChatGPT by default:
 
@@ -68,7 +68,7 @@ LLM_MODEL=deepseek-v4-pro
 
 API requests may override the default provider and model per request.
 
-## Roadmap
+## Roadmap 🗺️
 
 1. Project initialization.
 2. Mini Agent CLI with tool calling.
@@ -80,7 +80,7 @@ API requests may override the default provider and model per request.
 8. Docker deployment.
 9. Documentation and resume packaging.
 
-## Quick Start
+## Quick Start 🚀
 
 The project is being built phase by phase. The final local workflow will be:
 
@@ -113,7 +113,7 @@ docker compose up --build
 ```
 
 
-## Mini Agent CLI
+## Mini Agent CLI 🤖
 
 Phase 1 provides a command-line Mini Agent with:
 
@@ -137,7 +137,7 @@ Read README.md
 Search FastAPI in this project
 ```
 
-## RAG Code Retrieval
+## RAG Code Retrieval 🔎
 
 Phase 2 adds a local code retrieval loop:
 
@@ -180,7 +180,19 @@ Example chat request:
 
 API requests can override the default provider/model per call. Full endpoint schemas, response examples, and error codes are documented in [API](docs/api.md).
 
-## Documentation
+## Phase Validation ✅
+
+At the end of each phase, AICodePilot runs a full project sanity check before moving forward:
+
+- Verify the code structure still matches the planned Agent, tools, RAG, API, and docs layout.
+- Run focused tests for the current phase and the full backend test suite.
+- Validate runtime entrypoints such as CLI import, FastAPI app creation, OpenAPI schema, and health route.
+- Update TodoList and related docs after validation passes.
+- Commit and push the completed phase with a Conventional Commit message.
+
+Phase 3 validation confirms the FastAPI backend exposes `/api/health`, `/api/chat`, `/api/projects/index`, and `/api/projects/search` without breaking the Mini Agent or RAG layers.
+
+## Documentation 📚
 
 - [Architecture](docs/architecture.md)
 - [Agent Design](docs/agent-design.md)
@@ -193,7 +205,7 @@ API requests can override the default provider/model per call. Full endpoint sch
 - [Resume Guide](docs/resume.md)
 - [TodoList](docs/todolist.md)
 
-## License
+## License 📄
 
 This project is released under the MIT License. See [LICENSE](LICENSE).
 

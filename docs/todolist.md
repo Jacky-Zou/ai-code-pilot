@@ -59,7 +59,14 @@ Status values: TODO, IN_PROGRESS, DONE, BLOCKED.
 | P3-T05 | Implement exceptions | Add unified exception classes and handlers | `backend/app/core/exceptions.py` | Error response tests pass | DONE |
 | P3-T06 | Add API tests | Test health, chat, project index, search | `backend/tests/test_api.py` | `pytest backend/tests/test_api.py` | DONE |
 | P3-T07 | Update API docs | Document endpoints and examples | `docs/api.md`, `README.md`, `docs/todolist.md` | Docs updated | DONE |
-| P3-T08 | Commit Phase 3 | Commit validated FastAPI service | repository | `git log --oneline -1` shows Phase 3 commit | TODO |
+| P3-T08 | Commit Phase 3 | Commit validated FastAPI service | repository | `git log --oneline -1` shows Phase 3 commit | DONE |
+
+### Phase 3 Validation Checklist ✅
+
+- Structure review confirms `backend/app/api`, `backend/app/core`, Agent, tools, and RAG modules remain in the planned layout.
+- FastAPI app exposes `/api/health`, `/api/chat`, `/api/projects/index`, and `/api/projects/search`.
+- API schemas, routers, exception handlers, and integration tests are documented.
+- Validation passed: syntax check for 62 backend files, FastAPI smoke test, 23 Phase 3 API tests, and 86 full backend tests with an isolated Chroma path.
 
 ## Phase 4: Web Frontend
 
