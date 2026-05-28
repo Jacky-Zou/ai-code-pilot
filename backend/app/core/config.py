@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     embedding_model: str = Field(default="text-embedding-3-small", alias="EMBEDDING_MODEL")
 
     vector_store_path: Path = Field(default=Path("./data/vector_store"), alias="VECTOR_STORE_PATH")
+    vector_store_backend: str = Field(default="chroma", alias="VECTOR_STORE_BACKEND")
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
         populate_by_name=True,
     )
 
-    @field_validator("llm_provider", "embedding_provider")
+    @field_validator("llm_provider", "embedding_provider", "vector_store_backend")
     @classmethod
     def normalize_provider(cls, value: str) -> str:
         return value.strip().lower()
@@ -57,4 +58,5 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
 

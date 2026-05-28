@@ -8,3 +8,4 @@ pytest
 ruff
 black
 mypy
+chromadb

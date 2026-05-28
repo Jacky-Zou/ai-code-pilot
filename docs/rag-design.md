@@ -32,7 +32,7 @@ The OpenAI client raises a clear configuration error when `OPENAI_API_KEY` is mi
 
 ## Vector Store
 
-`backend/app/rag/vector_store.py` implements a lightweight JSON-persisted vector store with `add`, `search`, `save`, and `load`. It stores vectors and complete chunk metadata, then ranks results by cosine similarity. The API is intentionally narrow so a FAISS or Chroma adapter can replace the storage backend later without changing Agent logic.
+`backend/app/rag/vector_store.py` implements a Chroma-backed vector store as the default Phase 2 backend. `ChromaVectorStore` stores supplied embeddings, source documents, and metadata under `VECTOR_STORE_PATH`, then returns Top-K chunks with file path, line range, content, and similarity score. A lightweight `JsonVectorStore` remains available for deterministic unit tests and fallback debugging, but runtime retrieval defaults to Chroma through `VECTOR_STORE_BACKEND=chroma`.
 
 ## Retriever
 
@@ -51,4 +51,5 @@ The OpenAI client raises a clear configuration error when `OPENAI_API_KEY` is mi
   "score": 0.82
 }
 ```
+
 

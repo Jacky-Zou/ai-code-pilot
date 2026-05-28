@@ -6,7 +6,7 @@ from app.rag.chunker import CodeChunker
 from app.rag.embeddings import BaseEmbeddingClient, create_embedding_client
 from app.rag.indexer import ProjectIndexer
 from app.rag.schemas import RetrievedChunk
-from app.rag.vector_store import VectorStore
+from app.rag.vector_store import BaseVectorStore, create_vector_store, load_vector_store
 
 _QUERY_TOKEN_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|[\u4e00-\u9fff]+")
 _TEST_OR_DOC_MARKERS = ("/tests/", "tests/", "docs/", "README.md")
@@ -30,16 +30,29 @@ class CodeRetriever:
         indexer: ProjectIndexer | None = None,
         chunker: CodeChunker | None = None,
         embedding_client: BaseEmbeddingClient | None = None,
-        vector_store: VectorStore | None = None,
+        vector_store: BaseVectorStore | None = None,
         settings: Settings | None = None,
     ) -> None:
         self.settings = settings or get_settings()
+        self._vector_store_injected = vector_store is not None
         self.indexer = indexer or ProjectIndexer()
         self.chunker = chunker or CodeChunker()
         self.embedding_client = embedding_client or create_embedding_client(settings=self.settings)
-        self.vector_store = vector_store or VectorStore()
+        self.vector_store = vector_store or create_vector_store(
+            backend=self.settings.vector_store_backend,
+            persist_directory=self.settings.vector_store_path,
+        )
 
     def index_project(self, project_path: str | Path, save_path: str | Path | None = None) -> dict[str, int]:
+        if save_path is not None and not self._vector_store_injected and self.settings.vector_store_backend == "chroma":
+            # Chroma persists to the directory configured when the collection is
+            # created. Recreate the default store at save_path before indexing so
+            # a later from_saved_index(save_path) call loads the same collection.
+            self.vector_store = create_vector_store(
+                backend=self.settings.vector_store_backend,
+                persist_directory=save_path,
+            )
+
         files = self.indexer.scan_files(project_path)
         chunks = self.chunker.chunk_project_files(files)
         embeddings = self.embedding_client.embed_texts([chunk.content for chunk in chunks]) if chunks else []
@@ -71,7 +84,10 @@ class CodeRetriever:
         resolved_settings = settings or get_settings()
         return cls(
             embedding_client=embedding_client or create_embedding_client(settings=resolved_settings),
-            vector_store=VectorStore.load(index_path),
+            vector_store=load_vector_store(
+                backend=resolved_settings.vector_store_backend,
+                path=index_path,
+            ),
             settings=resolved_settings,
         )
 
@@ -121,6 +137,8 @@ class CodeRetriever:
         if normalized.endswith("requirements.txt") or normalized.endswith(".md"):
             return -0.08
         return 0.0
+
+
 
 
 

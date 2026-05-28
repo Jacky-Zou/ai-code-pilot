@@ -21,7 +21,7 @@ def test_retriever_indexes_project_and_returns_relevant_chunk(tmp_path: Path) ->
 
 def test_retriever_can_save_and_load_index(tmp_path: Path) -> None:
     (tmp_path / "registry.py").write_text("class ToolRegistry:\n    pass", encoding="utf-8")
-    index_path = tmp_path / "vectors" / "index.json"
+    index_path = tmp_path / "vectors"
     client = LocalHashEmbeddingClient(dimension=64)
     retriever = CodeRetriever(embedding_client=client)
 
@@ -30,3 +30,4 @@ def test_retriever_can_save_and_load_index(tmp_path: Path) -> None:
     results = loaded.search("ToolRegistry", top_k=1)
 
     assert results[0].file_path == "registry.py"
+

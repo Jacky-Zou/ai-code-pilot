@@ -41,6 +41,7 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.deepseek_model == "deepseek-v4-pro"
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.vector_store_path == Path("data/vector_store")
+    assert settings.vector_store_backend == "chroma"
 
 
 def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,4 +72,5 @@ def test_default_model_rejects_unknown_provider() -> None:
 
     with pytest.raises(ValueError, match="Unsupported LLM provider"):
         settings.default_model_for_provider("unknown")
+
 

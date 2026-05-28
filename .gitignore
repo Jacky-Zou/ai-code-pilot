@@ -24,3 +24,5 @@ chroma/
 faiss_index/
 tmp/
 temp/
+
+backend/data/*

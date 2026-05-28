@@ -9,7 +9,7 @@ AICodePilot uses a frontend/backend separated architecture. The backend exposes 
 - Agent Core: prompt construction, action parsing, tool execution, answer synthesis.
 - LLM Provider Layer: OpenAI and DeepSeek adapters behind a common interface.
 - Tools Layer: file listing, file reading, text search, and RAG retrieval tools.
-- RAG Engine: project scanning, line chunking, embedding, vector storage, and Top-K retrieval.
+- RAG Engine: project scanning, line chunking, embedding, Chroma vector storage, and Top-K retrieval.
 - Local Codebase: files and logs selected by the user.
 
 ## Current Data Flow
@@ -31,10 +31,11 @@ User request -> CLI Agent -> provider/model resolution -> LLM action planning ->
 1. `ProjectIndexer` scans safe text/code files.
 2. `CodeChunker` produces line-based chunks.
 3. Embedding client converts chunks and queries into vectors.
-4. `VectorStore` stores vectors plus chunk metadata.
+4. `ChromaVectorStore` stores vectors plus chunk metadata under `VECTOR_STORE_PATH`.
 5. `CodeRetriever` searches Top-K relevant chunks.
 6. `retrieve_code` exposes retrieval to the Agent.
 
 ## Model Defaults
 
 The default OpenAI model is `gpt-5.2` because current official OpenAI model documentation does not list a `gpt-5.5` API model. The default DeepSeek model is `deepseek-v4-pro`.
+

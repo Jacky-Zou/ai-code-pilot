@@ -34,7 +34,7 @@ AI and retrieval:
 - Prompt Engineering
 - Embedding
 - RAG
-- FAISS or Chroma
+- Chroma vector database
 
 Frontend:
 
@@ -132,7 +132,7 @@ Phase 2 adds a local code retrieval loop:
 - `CodeChunker` creates line-based chunks with file and line metadata.
 - `OpenAIEmbeddingClient` supports production embeddings.
 - `LocalHashEmbeddingClient` supports offline tests and demos.
-- `VectorStore` ranks chunks by cosine similarity and can persist JSON indexes.
+- `ChromaVectorStore` is the default vector database backend and persists code indexes under `VECTOR_STORE_PATH`.
 - `retrieve_code` lets the Agent answer code location questions with references.
 
 Example retrieval-oriented questions:
@@ -158,5 +158,6 @@ How is the tool registry implemented?
 ## License
 
 This project is released under the MIT License. See [LICENSE](LICENSE).
+
 
 
