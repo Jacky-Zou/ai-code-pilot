@@ -99,6 +99,30 @@ The final Docker workflow will be:
 docker compose up --build
 ```
 
+
+## Mini Agent CLI
+
+Phase 1 provides a command-line Mini Agent with:
+
+- OpenAI and DeepSeek provider abstraction.
+- Structured JSON tool-calling protocol.
+- Safe `list_files`, `read_file`, and `search_text` tools.
+- Tool call recording and code reference extraction.
+
+Run the CLI from the backend directory:
+
+```bash
+cd backend
+python -m app.main --project-path ..
+```
+
+Example questions:
+
+```text
+List Python files in this project
+Read README.md
+Search FastAPI in this project
+```
 ## Documentation
 
 - [Architecture](docs/architecture.md)
@@ -115,3 +139,4 @@ docker compose up --build
 ## License
 
 This project is released under the MIT License. See [LICENSE](LICENSE).
+

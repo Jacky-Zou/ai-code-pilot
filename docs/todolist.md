@@ -18,22 +18,22 @@ Status values: TODO, IN_PROGRESS, DONE, BLOCKED.
 
 | ID | Task | Description | Files | Validation | Status |
 |---|---|---|---|---|---|
-| P1-T01 | Implement config | Load env config with pydantic-settings for app, OpenAI, DeepSeek, embedding, vector store | `backend/app/core/config.py`, `backend/tests/test_config.py` | `pytest backend/tests/test_config.py` | TODO |
-| P1-T02 | Implement logger | Provide shared logger honoring LOG_LEVEL with timestamp, level, module, and message | `backend/app/core/logger.py` | Simple logger smoke run succeeds | TODO |
-| P1-T03 | Implement LLM base schemas | Define provider abstraction and message/response structures | `backend/app/llm/base.py`, `backend/app/llm/schemas.py` | pytest validates abstract interface | TODO |
-| P1-T04 | Implement OpenAI provider | Call OpenAI-compatible chat completions with clear config errors | `backend/app/llm/openai_provider.py` | Missing key returns clear error; optional live call when key exists | TODO |
-| P1-T05 | Implement DeepSeek provider | Call DeepSeek chat API using same provider interface | `backend/app/llm/deepseek_provider.py` | Missing key returns clear error; factory can create provider | TODO |
-| P1-T06 | Implement provider factory | Resolve default/requested provider and reject unsupported names | `backend/app/llm/factory.py`, `backend/tests/test_llm_factory.py` | `pytest backend/tests/test_llm_factory.py` | TODO |
-| P1-T07 | Implement tool base | Define BaseTool with name, description, args_schema, and run | `backend/app/tools/base.py` | pytest | TODO |
-| P1-T08 | Implement file tools | Add safe `list_files` and `read_file` | `backend/app/tools/file_tools.py`, `backend/tests/test_file_tools.py` | `pytest backend/tests/test_file_tools.py` | TODO |
-| P1-T09 | Implement search tool | Add recursive safe text search with ignored directories and limits | `backend/app/tools/search_tools.py`, `backend/tests/test_search_tools.py` | `pytest backend/tests/test_search_tools.py` | TODO |
-| P1-T10 | Implement tool registry | Register, retrieve, and describe tools with clear missing-tool errors | `backend/app/tools/registry.py`, `backend/tests/test_tool_registry.py` | `pytest backend/tests/test_tool_registry.py` | TODO |
-| P1-T11 | Implement agent prompt | Define developer assistant prompt with tool descriptions and JSON action protocol | `backend/app/agent/prompts.py` | Manual prompt review | TODO |
-| P1-T12 | Implement agent schemas | Define request, response, action, call, and result schemas | `backend/app/agent/schemas.py` | pytest schema construction | TODO |
-| P1-T13 | Implement agent executor | Run LLM action planning, execute tools, summarize results | `backend/app/agent/agent.py`, `backend/app/agent/executor.py` | Agent unit tests pass | TODO |
-| P1-T14 | Implement CLI demo | Provide interactive CLI entrypoint | `backend/app/main.py` | `cd backend && python -m app.main` starts | TODO |
-| P1-T15 | Update Phase 1 docs | Document Mini Agent design and README usage | `docs/agent-design.md`, `README.md`, `docs/todolist.md` | Docs updated and Todo statuses accurate | TODO |
-| P1-T16 | Commit Phase 1 | Commit validated Mini Agent implementation | repository | `git log --oneline -1` shows Phase 1 commit | TODO |
+| P1-T01 | Implement config | Load env config with pydantic-settings for app, OpenAI, DeepSeek, embedding, vector store | `backend/app/core/config.py`, `backend/tests/test_config.py` | `pytest backend/tests/test_config.py` | DONE |
+| P1-T02 | Implement logger | Provide shared logger honoring LOG_LEVEL with timestamp, level, module, and message | `backend/app/core/logger.py` | Simple logger smoke run succeeds | DONE |
+| P1-T03 | Implement LLM base schemas | Define provider abstraction and message/response structures | `backend/app/llm/base.py`, `backend/app/llm/schemas.py` | pytest validates abstract interface | DONE |
+| P1-T04 | Implement OpenAI provider | Call OpenAI-compatible chat completions with clear config errors | `backend/app/llm/openai_provider.py` | Missing key returns clear error; optional live call when key exists | DONE |
+| P1-T05 | Implement DeepSeek provider | Call DeepSeek chat API using same provider interface | `backend/app/llm/deepseek_provider.py` | Missing key returns clear error; factory can create provider | DONE |
+| P1-T06 | Implement provider factory | Resolve default/requested provider and reject unsupported names | `backend/app/llm/factory.py`, `backend/tests/test_llm_factory.py` | `pytest backend/tests/test_llm_factory.py` | DONE |
+| P1-T07 | Implement tool base | Define BaseTool with name, description, args_schema, and run | `backend/app/tools/base.py` | pytest | DONE |
+| P1-T08 | Implement file tools | Add safe `list_files` and `read_file` | `backend/app/tools/file_tools.py`, `backend/tests/test_file_tools.py` | `pytest backend/tests/test_file_tools.py` | DONE |
+| P1-T09 | Implement search tool | Add recursive safe text search with ignored directories and limits | `backend/app/tools/search_tools.py`, `backend/tests/test_search_tools.py` | `pytest backend/tests/test_search_tools.py` | DONE |
+| P1-T10 | Implement tool registry | Register, retrieve, and describe tools with clear missing-tool errors | `backend/app/tools/registry.py`, `backend/tests/test_tool_registry.py` | `pytest backend/tests/test_tool_registry.py` | DONE |
+| P1-T11 | Implement agent prompt | Define developer assistant prompt with tool descriptions and JSON action protocol | `backend/app/agent/prompts.py` | Manual prompt review | DONE |
+| P1-T12 | Implement agent schemas | Define request, response, action, call, and result schemas | `backend/app/agent/schemas.py` | pytest schema construction | DONE |
+| P1-T13 | Implement agent executor | Run LLM action planning, execute tools, summarize results | `backend/app/agent/agent.py`, `backend/app/agent/executor.py` | Agent unit tests pass | DONE |
+| P1-T14 | Implement CLI demo | Provide interactive CLI entrypoint | `backend/app/main.py` | `cd backend && python -m app.main` starts | DONE |
+| P1-T15 | Update Phase 1 docs | Document Mini Agent design and README usage | `docs/agent-design.md`, `README.md`, `docs/todolist.md` | Docs updated and Todo statuses accurate | DONE |
+| P1-T16 | Commit Phase 1 | Commit validated Mini Agent implementation | repository | `git log --oneline -1` shows Phase 1 commit | DONE |
 
 ## Phase 2: RAG Code Retrieval
 
@@ -126,6 +126,23 @@ Status values: TODO, IN_PROGRESS, DONE, BLOCKED.
 | P8-T08 | Final validation | Run tests, lint, type checks, Docker build | all | `pytest`, `ruff check .`, `black --check .`, `mypy backend/app`, `docker compose up --build` | TODO |
 | P8-T09 | Final commit | Commit final documentation | repository | `git log --oneline -1` shows final docs commit | TODO |
 | P8-T10 | Tag release | Create v1.0.0 release tag and push | git tag/remote | `git tag --list v1.0.0` | TODO |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
