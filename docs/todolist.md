@@ -53,7 +53,7 @@ Status values: TODO, IN_PROGRESS, DONE, BLOCKED.
 | ID | Task | Description | Files | Validation | Status |
 |---|---|---|---|---|---|
 | P3-T01 | Implement API schemas | Define request/response models for health, chat, index, search | `backend/app/api/schemas.py` | Schema tests pass | DONE |
-| P3-T02 | Implement chat router | Expose `/api/chat` | `backend/app/api/routes_chat.py` | API tests pass | TODO |
+| P3-T02 | Implement chat router | Expose `/api/chat` | `backend/app/api/routes_chat.py` | API tests pass | DONE |
 | P3-T03 | Implement project router | Expose `/api/projects/index` and `/api/projects/search` | `backend/app/api/routes_project.py` | API tests pass | TODO |
 | P3-T04 | Implement FastAPI main | Wire routers and health endpoint | `backend/app/main.py` | `uvicorn app.main:app --reload` starts | TODO |
 | P3-T05 | Implement exceptions | Add unified exception classes and handlers | `backend/app/core/exceptions.py` | Error response tests pass | TODO |
