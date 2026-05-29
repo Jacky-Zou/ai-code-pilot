@@ -26,11 +26,15 @@ def test_generate_patch_suggestion_rejects_noop_change() -> None:
 
 
 def test_generate_patch_suggestion_rejects_unsafe_paths() -> None:
-    with pytest.raises(AICodePilotError, match="project-relative"):
-        generate_patch_suggestion("C:/tmp/file.py", "old", "new")
+    for unsafe_path in ("C:/tmp/file.py", r"C:\tmp\file.py", "C:file.py", "/tmp/file.py"):
+        with pytest.raises(AICodePilotError, match="project-relative"):
+            generate_patch_suggestion(unsafe_path, "old", "new")
 
     with pytest.raises(AICodePilotError, match="parent directories"):
         generate_patch_suggestion("../file.py", "old", "new")
+
+    with pytest.raises(AICodePilotError, match="parent directories"):
+        generate_patch_suggestion(r"..\file.py", "old", "new")
 
 
 def test_generate_multi_file_patch_suggestions() -> None:

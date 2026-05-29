@@ -1,5 +1,5 @@
 from difflib import unified_diff
-from pathlib import Path
+from pathlib import PurePosixPath, PureWindowsPath
 
 from app.agent.schemas import PatchSuggestion
 from app.core.exceptions import AICodePilotError
@@ -69,9 +69,15 @@ def _normalize_patch_path(file_path: str) -> str:
     cleaned = file_path.strip()
     if not cleaned:
         raise AICodePilotError("file_path cannot be empty")
-    path = Path(cleaned)
-    if path.is_absolute():
+
+    # Patch suggestions must be portable project-relative paths because they are
+    # returned as review artifacts, not applied by the current OS. `Path` uses
+    # host semantics, so `C:/tmp/file.py` is absolute on Windows but looks
+    # relative on Linux CI. Check both POSIX and Windows semantics explicitly.
+    posix_path = PurePosixPath(cleaned)
+    windows_path = PureWindowsPath(cleaned)
+    if posix_path.is_absolute() or windows_path.is_absolute() or windows_path.drive:
         raise AICodePilotError("Patch suggestions must use project-relative file paths")
-    if ".." in path.parts:
+    if ".." in posix_path.parts or ".." in windows_path.parts:
         raise AICodePilotError("Patch suggestions cannot target parent directories")
-    return path.as_posix()
+    return windows_path.as_posix()
