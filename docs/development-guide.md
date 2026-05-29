@@ -106,3 +106,20 @@ Completed Phase 5 validation includes:
 - Frontend `npm run build`.
 - HTTP smoke test against a local Next.js server: `STATUS=200`.
 - TodoList and security documentation review for memory, log, shell, and patch boundaries.
+
+## Phase 6 Config Validation 🛡️
+
+The configuration quality task verifies:
+
+- Runtime provider choices are validated at startup instead of failing later in Agent or RAG code.
+- `LLM_PROVIDER` supports `openai` and `deepseek`.
+- `EMBEDDING_PROVIDER` supports `openai` and `local`.
+- `VECTOR_STORE_BACKEND` supports `chroma`, `json`, and `memory`.
+- `LOG_LEVEL` accepts standard Python logging levels only.
+- Base URLs are trimmed, normalized, and required to use `http://` or `https://`.
+- Blank `LLM_MODEL` values fall back to the selected provider's default model.
+
+Completed config validation includes:
+
+- Focused config tests: `10 passed`.
+- Full backend regression test with a temporary Chroma vector store path: `112 passed`.

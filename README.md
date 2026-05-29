@@ -68,6 +68,17 @@ LLM_MODEL=deepseek-v4-pro
 
 API requests may override the default provider and model per request.
 
+## Configuration Quality 🛡️
+
+Phase 6 starts by tightening runtime configuration validation:
+
+- `LLM_PROVIDER` must be `openai` or `deepseek`.
+- `EMBEDDING_PROVIDER` must be `openai` or `local`.
+- `VECTOR_STORE_BACKEND` must be `chroma`, `json`, or `memory`.
+- `LOG_LEVEL` must be one of `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`.
+- OpenAI and DeepSeek base URLs are normalized and must start with `http://` or `https://`.
+- A blank `LLM_MODEL` falls back to the selected provider default, so provider switching keeps a predictable model.
+
 ## Roadmap 🗺️
 
 1. Project initialization.
@@ -289,6 +300,8 @@ Phase 3 validation confirms the FastAPI backend exposes `/api/health`, `/api/cha
 Phase 4 validation confirms the Next.js frontend builds successfully, renders over HTTP, and keeps the provider selector, project indexing, Agent chat, tool-call timeline, and code reference workflow aligned with the backend APIs.
 
 Phase 5 validation confirms bounded memory, log analysis, safe shell execution, patch suggestions, and advanced tool integration are covered by backend tests, documented security boundaries, frontend type/lint checks, production build, and HTTP smoke testing.
+
+Phase 6 configuration validation confirms settings fail fast for unsupported providers, embedding backends, vector stores, log levels, and invalid base URLs while preserving the OpenAI default and DeepSeek override path.
 
 ## Documentation 📚
 
