@@ -313,6 +313,8 @@ Phase 6 lint validation adds a Ruff configuration for correctness-level Python c
 
 Phase 6 formatting validation adds a Black configuration, formats backend Python files consistently, and keeps the formatting gate aligned with Ruff's Python 3.10 and line-length settings.
 
+Phase 6 type validation adds a mypy configuration for the backend package, including explicit package-base handling for the `backend/app` layout and a checked Chroma vector-store boundary.
+
 ## Documentation 📚
 
 - [Architecture](docs/architecture.md)

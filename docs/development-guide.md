@@ -202,3 +202,19 @@ Completed Black validation includes:
 - `black --check .`: passed.
 - `ruff check .`: passed after formatting.
 - Full backend regression test: `125 passed`.
+
+## Phase 6 Mypy Validation
+
+The mypy configuration task verifies:
+
+- `pyproject.toml` defines backend type checking for the `app` package.
+- `mypy_path = "backend"` and `explicit_package_bases = true` map imports consistently to `app.*`.
+- Third-party boundaries, including Chroma's broad vector-store API types, are contained with narrow casts at the integration edge.
+- The first type gate checks function bodies without forcing strict mode across every dependency and framework boundary.
+
+Completed mypy validation includes:
+
+- `mypy backend/app`: passed.
+- `black --check .`: passed.
+- `ruff check .`: passed.
+- Full backend regression test: `125 passed`.

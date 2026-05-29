@@ -2,7 +2,7 @@
 import math
 import uuid
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol, cast
 
 from pydantic import BaseModel
 
@@ -132,7 +132,7 @@ class ChromaVectorStore:
 
         ids = [str(uuid.uuid4()) for _ in chunks]
         documents = [chunk.content for chunk in chunks]
-        metadatas = [
+        metadatas: list[dict[str, str | int]] = [
             {
                 "file_path": chunk.file_path,
                 "start_line": chunk.start_line,
@@ -140,20 +140,22 @@ class ChromaVectorStore:
             }
             for chunk in chunks
         ]
-        self._collection.add(ids=ids, embeddings=embeddings, documents=documents, metadatas=metadatas)
+        self._collection.add(ids=ids, embeddings=cast(Any, embeddings), documents=documents, metadatas=cast(Any, metadatas))
 
     def search(self, query_embedding: list[float], top_k: int = 5) -> list[RetrievedChunk]:
         _validate_search_inputs(query_embedding, top_k)
         if self.size == 0:
             return []
 
-        result = self._collection.query(query_embeddings=[query_embedding], n_results=min(top_k, self.size))
-        documents = result.get("documents", [[]])[0]
-        metadatas = result.get("metadatas", [[]])[0]
-        distances = result.get("distances", [[]])[0]
+        result = cast(
+            dict[str, Any], self._collection.query(query_embeddings=cast(Any, [query_embedding]), n_results=min(top_k, self.size))
+        )
+        documents = result.get("documents") or [[]]
+        metadatas = result.get("metadatas") or [[]]
+        distances = result.get("distances") or [[]]
 
         chunks: list[RetrievedChunk] = []
-        for document, metadata, distance in zip(documents, metadatas, distances):
+        for document, metadata, distance in zip(documents[0], metadatas[0], distances[0]):
             score = 1.0 - float(distance)
             chunks.append(
                 RetrievedChunk(

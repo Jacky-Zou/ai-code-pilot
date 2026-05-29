@@ -40,3 +40,20 @@ extend-exclude = '''
   | htmlcov
 )/
 '''
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["app"]
+mypy_path = "backend"
+explicit_package_bases = true
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = false
+strict_optional = true
+exclude = [
+    "^frontend/",
+    "^data/",
+    "^backend/data/",
+]
