@@ -60,6 +60,14 @@ Phase 5 adds `AnalyzeLogTool` as the implementation behind `analyze_log(log_text
 
 The tool is implemented and tested independently first. Registering it as part of the default Agent tool set is handled by the later Phase 5 integration task.
 
+## Safe Shell Tool 🛡️
+
+Phase 5 adds `RunCommandTool` as the implementation behind `run_command(command, cwd)`. It executes a single command with `shell=False`, captures `stdout`, `stderr`, and `exit_code`, and returns a structured timeout result when the command exceeds the configured limit.
+
+The tool rejects command chaining, pipes, redirects, command substitution, and destructive executables such as `rm`, `del`, `format`, and `shutdown`. When `project_path` is provided, `cwd` must resolve inside that project root.
+
+Like the other advanced tools, this task implements and tests the shell tool independently. Default Agent registration is handled by the later Phase 5 integration task.
+
 ## API Integration 🌐
 
 Phase 3 exposes the same Agent through `POST /api/chat`. The API layer does not bypass the Agent loop; it validates the request, passes through `message`, `project_path`, `provider`, and `model`, then returns `answer`, `tool_calls`, and `references`.

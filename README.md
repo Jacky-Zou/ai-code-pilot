@@ -254,6 +254,13 @@ Phase 5 also adds an `analyze_log(log_text)` tool:
 - Extracts error lines, exception names, and Python traceback frames.
 - Returns compact debugging recommendations without executing commands or modifying files.
 
+The `run_command(command, cwd)` tool is implemented with safety boundaries:
+
+- Runs with `shell=False` and blocks shell chaining, pipes, redirects, and command substitution.
+- Restricts `cwd` to the declared project root when `project_path` is provided.
+- Blocks destructive commands such as `rm`, `del`, `format`, `shutdown`, and related aliases.
+- Captures `stdout`, `stderr`, `exit_code`, and timeout state.
+
 ## Phase Validation ✅
 
 At the end of each phase, AICodePilot runs a full project sanity check before moving forward:

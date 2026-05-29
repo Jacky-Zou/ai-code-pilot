@@ -32,7 +32,13 @@ This keeps frontend handling predictable and prevents raw tracebacks from becomi
 
 ## Shell Execution 🧯
 
-The shell tool is added later and must block destructive commands, restrict cwd, capture output, and enforce timeouts.
+The `run_command(command, cwd)` shell tool is implemented with strict boundaries:
+
+- Commands run with `shell=False`.
+- `cwd` must stay inside `project_path` when a project root is provided.
+- Destructive commands such as `rm`, `del`, `format`, `shutdown`, and related aliases are blocked.
+- Shell chaining, pipes, redirects, command substitution, and script download/execute patterns are blocked.
+- Output is captured as `stdout`, `stderr`, `exit_code`, and timeout state.
 
 ## Phase Checks ✅
 

@@ -69,3 +69,13 @@ The log analyzer task verifies:
 - Python traceback frame parsing with file path, line number, and function name.
 - Result limiting through `max_issues`.
 - Read-only behavior with no filesystem or shell side effects.
+
+## Phase 5 Shell Tool Validation 🛡️
+
+The safe shell task verifies:
+
+- Commands run only with `shell=False`.
+- `cwd` can be restricted to the declared project root.
+- Dangerous commands and shell control operators are rejected.
+- Timeout, non-zero exit code, `stdout`, and `stderr` are captured in structured output.
+- Windows command parsing preserves executable paths and quoted arguments safely.
