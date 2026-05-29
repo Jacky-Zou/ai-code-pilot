@@ -105,7 +105,7 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 
 | ID | Task | Description | Files | Validation | Status |
 |---|---|---|---|---|---|
-| P7-T01 | Write backend Dockerfile | Containerize FastAPI backend | `backend/Dockerfile` | Backend image builds | TODO |
+| P7-T01 | Write backend Dockerfile | Containerize FastAPI backend | `backend/Dockerfile` | Backend image builds | DONE ✅ |
 | P7-T02 | Write frontend Dockerfile | Containerize Next.js frontend | `frontend/Dockerfile` | Frontend image builds | TODO |
 | P7-T03 | Write docker-compose | Start backend and frontend together | `docker-compose.yml` | `docker compose up --build` starts services | TODO |
 | P7-T04 | Refine env example | Ensure Docker env variables are documented | `.env.example` | Manual field check | TODO |
