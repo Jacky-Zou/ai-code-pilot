@@ -117,5 +117,3 @@ def test_settings_rejects_blank_required_provider_model(monkeypatch: pytest.Monk
 
     with pytest.raises(ValidationError, match="model name cannot be empty"):
         Settings(_env_file=None)
-
-

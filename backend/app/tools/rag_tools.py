@@ -30,9 +30,7 @@ class RetrieveCodeTool(BaseTool):
         # credentials. Production requests can pass embedding_provider="openai"
         # to use the configured OpenAI embedding model.
         embedding_client = (
-            LocalHashEmbeddingClient()
-            if args.embedding_provider == "local"
-            else create_embedding_client(args.embedding_provider)
+            LocalHashEmbeddingClient() if args.embedding_provider == "local" else create_embedding_client(args.embedding_provider)
         )
         retriever = CodeRetriever(embedding_client=embedding_client)
         stats = retriever.index_project(root)

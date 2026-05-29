@@ -35,4 +35,3 @@ def test_agent_response_can_store_patch_suggestions() -> None:
     response = AgentResponse(answer="ok", provider="openai", model="gpt-5.2", patch_suggestions=[patch])
 
     assert response.patch_suggestions[0].file_path == "app.py"
-

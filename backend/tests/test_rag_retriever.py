@@ -30,4 +30,3 @@ def test_retriever_can_save_and_load_index(tmp_path: Path) -> None:
     results = loaded.search("ToolRegistry", top_k=1)
 
     assert results[0].file_path == "registry.py"
-

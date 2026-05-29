@@ -186,3 +186,19 @@ Completed Ruff validation includes:
 - `ruff check .`: passed.
 - Full backend regression test: `125 passed`.
 - Compile check with a temporary `PYTHONPYCACHEPREFIX`.
+
+## Phase 6 Black Validation
+
+The Black configuration task verifies:
+
+- `pyproject.toml` defines the project formatting gate.
+- Black targets Python 3.10 and uses the same 140-character line length as Ruff.
+- Generated/cache-heavy paths such as `.venv`, `.next`, `node_modules`, and `data/vector_store` are excluded.
+- Existing backend Python files and tests are formatted consistently before the check is enforced.
+
+Completed Black validation includes:
+
+- `black .`: reformatted existing Python files.
+- `black --check .`: passed.
+- `ruff check .`: passed after formatting.
+- Full backend regression test: `125 passed`.

@@ -39,7 +39,7 @@ def test_run_command_rejects_shell_control_operators(tmp_path: Path) -> None:
 
 def test_run_command_returns_timeout_result(tmp_path: Path) -> None:
     result = RunCommandTool().run(
-        command=f"{sys.executable} -c \"import time; time.sleep(2)\"",
+        command=f'{sys.executable} -c "import time; time.sleep(2)"',
         cwd=str(tmp_path),
         project_path=str(tmp_path),
         timeout_seconds=1,

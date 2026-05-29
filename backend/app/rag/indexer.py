@@ -135,5 +135,3 @@ class ProjectIndexer:
         except UnicodeDecodeError:
             return True
         return False
-
-

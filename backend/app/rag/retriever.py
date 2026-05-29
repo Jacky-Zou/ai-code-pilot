@@ -144,8 +144,3 @@ class CodeRetriever:
         if normalized.endswith("requirements.txt") or normalized.endswith(".md"):
             return -0.08
         return 0.0
-
-
-
-
-

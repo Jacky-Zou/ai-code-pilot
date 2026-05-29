@@ -21,3 +21,22 @@ extend-exclude = [
 # Formatting, import ordering, and type strictness are configured in later
 # Phase 6 tasks so each quality gate can be introduced and validated cleanly.
 select = ["E", "F"]
+
+[tool.black]
+target-version = ["py310"]
+line-length = 140
+extend-exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.ruff_cache
+  | \.venv
+  | build
+  | data/vector_store
+  | dist
+  | frontend/\.next
+  | frontend/node_modules
+  | htmlcov
+)/
+'''

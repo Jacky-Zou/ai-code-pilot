@@ -38,4 +38,3 @@ def test_llm_response_schema() -> None:
 
     assert response.content == "answer"
     assert response.raw is None
-

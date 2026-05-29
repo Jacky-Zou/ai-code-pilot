@@ -30,4 +30,3 @@ def test_deepseek_provider_uses_default_model(monkeypatch: pytest.MonkeyPatch) -
     assert answer == "deepseek ok"
     assert captured["model"] == "deepseek-v4-pro"
     assert captured["api_key"] == "test-key"
-

@@ -311,6 +311,8 @@ Phase 6 expanded testing adds coverage for the LLM HTTP client, Agent planner, A
 
 Phase 6 lint validation adds a Ruff configuration for correctness-level Python checks and keeps the Ruff cache in a temporary directory to avoid local workspace permission noise.
 
+Phase 6 formatting validation adds a Black configuration, formats backend Python files consistently, and keeps the formatting gate aligned with Ruff's Python 3.10 and line-length settings.
+
 ## Documentation 📚
 
 - [Architecture](docs/architecture.md)

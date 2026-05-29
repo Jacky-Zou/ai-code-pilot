@@ -35,9 +35,7 @@ def test_analyze_log_extracts_python_traceback_frames() -> None:
 
     assert result["stack_traces"][0]["start_line"] == 2
     assert result["stack_traces"][0]["exception_type"] == "RuntimeError"
-    assert result["stack_traces"][0]["frames"] == [
-        {"file_path": "backend/app/main.py", "line_number": 12, "function": "run"}
-    ]
+    assert result["stack_traces"][0]["frames"] == [{"file_path": "backend/app/main.py", "line_number": 12, "function": "run"}]
     assert any("deepest stack frame" in item for item in result["recommendations"])
 
 

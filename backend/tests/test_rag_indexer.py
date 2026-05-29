@@ -37,4 +37,3 @@ def test_project_indexer_skips_large_files(tmp_path: Path) -> None:
 def test_project_indexer_rejects_missing_project(tmp_path: Path) -> None:
     with pytest.raises(ToolError, match="does not exist"):
         ProjectIndexer().scan_files(tmp_path / "missing")
-
