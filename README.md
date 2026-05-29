@@ -307,6 +307,8 @@ Phase 6 logging validation confirms backend modules use the shared logger format
 
 Phase 6 exception validation confirms API errors keep the existing `error` and `detail` fields while adding stable machine-readable `code` values and optional `request_id` correlation from `X-Request-ID`.
 
+Phase 6 expanded testing adds coverage for the LLM HTTP client, Agent planner, Agent facade, and isolated test vector-store setup so local Chroma state does not leak into regression runs.
+
 ## Documentation 📚
 
 - [Architecture](docs/architecture.md)

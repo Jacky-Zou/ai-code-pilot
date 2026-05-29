@@ -155,3 +155,19 @@ Completed exception validation includes:
 - Focused exception/API schema tests: `20 passed`.
 - Compile check with a temporary `PYTHONPYCACHEPREFIX` to avoid locked local cache files.
 - Full backend regression test with a temporary Chroma vector store path: `115 passed`.
+
+## Phase 6 Expanded Test Validation 🧪
+
+The expanded testing task verifies:
+
+- LLM HTTP client payload construction, HTTP status wrapping, invalid payload handling, and chat content extraction errors.
+- Agent planner behavior for plain-text final answers, structured tool actions, and invalid structured JSON.
+- `AICodePilotAgent` facade request construction before delegating to the executor.
+- The backend test suite uses an isolated process-local `VECTOR_STORE_PATH` by default, preventing persisted local Chroma state from leaking into tests.
+- Compile checks continue to use a temporary `PYTHONPYCACHEPREFIX` to avoid locked local cache files.
+
+Completed expanded test validation includes:
+
+- Focused new and affected tests: `13 passed`.
+- Full backend regression test: `125 passed`.
+- Compile check with a temporary `PYTHONPYCACHEPREFIX`.
