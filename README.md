@@ -1,4 +1,4 @@
-﻿# AICodePilot
+# AICodePilot
 
 AICodePilot is an AI coding assistant for codebase understanding and development workflows. It is designed as a hands-on LLM Agent project with tool calling, semantic retrieval, multiple model providers, a FastAPI backend, a React/Next.js frontend, Docker deployment, and complete engineering documentation.
 
@@ -93,25 +93,23 @@ Phase 6 starts by tightening runtime configuration validation:
 
 ## Quick Start 🚀
 
-The project is being built phase by phase. The final local workflow will be:
+Copy the example environment file first and put real API keys only in `.env`:
 
 ```bash
 cp .env.example .env
+```
+
+Run the backend locally:
+
+```bash
 cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python -m app.main
-```
-
-Run the FastAPI backend service:
-
-```bash
-cd backend
 uvicorn app.main:app --reload
 ```
 
-Then open:
+Open:
 
 ```text
 http://localhost:8000/docs
@@ -125,20 +123,29 @@ npm install
 npm run dev
 ```
 
-Then open:
+Open:
 
 ```text
-http://127.0.0.1:3000
+http://localhost:3000
 ```
 
 The frontend uses `NEXT_PUBLIC_API_BASE_URL` when it is set, and falls back to `http://localhost:8000`.
 
-The final Docker workflow will be:
+Docker one-command demo from the repository root:
 
 ```bash
 docker compose up --build
 ```
 
+If Docker Hub is unreliable, override the base images with reachable mirrors:
+
+```powershell
+$env:PYTHON_IMAGE="mirror.gcr.io/library/python:3.10-slim"
+$env:NODE_IMAGE="mirror.gcr.io/library/node:20-alpine"
+docker compose up --build
+```
+
+Backend runs on `http://localhost:8000`; frontend runs on `http://localhost:3000`.
 
 ## Mini Agent CLI 🤖
 
@@ -333,6 +340,3 @@ Phase 6 CI validation adds a GitHub Actions workflow draft that runs Ruff, Black
 ## License 📄
 
 This project is released under the MIT License. See [LICENSE](LICENSE).
-
-
-
