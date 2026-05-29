@@ -218,3 +218,15 @@ Completed mypy validation includes:
 - `black --check .`: passed.
 - `ruff check .`: passed.
 - Full backend regression test: `125 passed`.
+
+## Phase 6 CI Draft
+
+The GitHub Actions draft mirrors the local backend quality gates:
+
+- Install backend dependencies from `backend/requirements.txt`.
+- Run `ruff check .`.
+- Run `black --check .`.
+- Run `mypy backend/app`.
+- Run `pytest backend/tests`.
+
+The workflow is stored at `.github/workflows/ci.yml` and runs on pushes and pull requests targeting `main`.

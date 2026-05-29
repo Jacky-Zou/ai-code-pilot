@@ -315,6 +315,8 @@ Phase 6 formatting validation adds a Black configuration, formats backend Python
 
 Phase 6 type validation adds a mypy configuration for the backend package, including explicit package-base handling for the `backend/app` layout and a checked Chroma vector-store boundary.
 
+Phase 6 CI validation adds a GitHub Actions workflow draft that runs Ruff, Black, mypy, and backend tests on pushes and pull requests.
+
 ## Documentation 📚
 
 - [Architecture](docs/architecture.md)

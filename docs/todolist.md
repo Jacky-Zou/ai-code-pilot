@@ -98,8 +98,8 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 | P6-T05 | Configure ruff | Add lint config | `pyproject.toml` or `ruff.toml` | `ruff check .` | DONE ✅ |
 | P6-T06 | Configure black | Add format config | `pyproject.toml` | `black --check .` | DONE ✅ |
 | P6-T07 | Configure mypy | Add typing config | `pyproject.toml` | `mypy backend/app` | DONE ✅ |
-| P6-T08 | Add GitHub Actions draft | Add CI workflow draft | `.github/workflows/ci.yml` | Workflow file exists | TODO |
-| P6-T09 | Commit Phase 6 | Commit quality improvements | repository | `git log --oneline -1` shows Phase 6 commit | TODO |
+| P6-T08 | Add GitHub Actions draft | Add CI workflow draft | `.github/workflows/ci.yml` | Workflow file exists | DONE ✅ |
+| P6-T09 | Commit Phase 6 | Commit quality improvements | repository | `git log --oneline -1` shows Phase 6 commit | DONE ✅ |
 
 ## Phase 7: Docker Deployment
 
