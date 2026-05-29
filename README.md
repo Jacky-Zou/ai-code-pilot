@@ -272,6 +272,7 @@ Advanced tools are now connected to the Agent path:
 - `analyze_log` and `run_command` are registered in the default `ToolRegistry`.
 - `AgentExecutor` can use optional bounded conversation memory for follow-up context.
 - Patch suggestions returned by tools are validated and forwarded in `AgentResponse`.
+- The advanced tool security model is documented in [Security](docs/security.md).
 
 ## Phase Validation ✅
 

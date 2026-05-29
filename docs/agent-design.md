@@ -80,6 +80,8 @@ The default `ToolRegistry` now includes the advanced `analyze_log` and `run_comm
 
 Patch suggestions remain advisory. The executor validates any `patch_suggestions` returned by a tool and forwards them in `AgentResponse`, but it never applies the diff.
 
+The related safety boundaries for memory, log analysis, shell execution, and patch suggestions are detailed in [Security](security.md).
+
 ## API Integration 🌐
 
 Phase 3 exposes the same Agent through `POST /api/chat`. The API layer does not bypass the Agent loop; it validates the request, passes through `message`, `project_path`, `provider`, and `model`, then returns `answer`, `tool_calls`, and `references`.
