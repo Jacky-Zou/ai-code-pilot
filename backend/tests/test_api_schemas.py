@@ -77,7 +77,14 @@ def test_project_search_response_contains_results() -> None:
 
 
 def test_error_response_schema() -> None:
-    response = ErrorResponse(error="ConfigurationError", detail="missing key")
+    response = ErrorResponse(
+        error="ConfigurationError",
+        code="CONFIGURATION_ERROR",
+        detail="missing key",
+        request_id="req-123",
+    )
 
     assert response.error == "ConfigurationError"
+    assert response.code == "CONFIGURATION_ERROR"
     assert response.detail == "missing key"
+    assert response.request_id == "req-123"

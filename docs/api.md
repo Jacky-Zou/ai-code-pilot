@@ -188,9 +188,13 @@ All Phase 3 API errors use a consistent JSON shape:
 ```json
 {
   "error": "ValidationError",
+  "code": "VALIDATION_ERROR",
   "detail": []
 }
 ```
+
+When callers send `X-Request-ID`, the same value is included in the error
+response as `request_id` so logs and API responses can be correlated.
 
 Common status codes:
 
@@ -208,6 +212,7 @@ Validation error example:
 ```json
 {
   "error": "ValidationError",
+  "code": "VALIDATION_ERROR",
   "detail": [
     {
       "type": "string_too_short",
@@ -219,6 +224,17 @@ Validation error example:
       }
     }
   ]
+}
+```
+
+Provider error example with request correlation:
+
+```json
+{
+  "error": "LLMProviderError",
+  "code": "LLM_PROVIDER_ERROR",
+  "detail": "LLM provider returned HTTP 500",
+  "request_id": "req-123"
 }
 ```
 

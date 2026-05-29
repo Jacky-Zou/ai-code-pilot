@@ -79,7 +79,9 @@ class ProjectSearchResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    """Consistent API error response used by Phase 3 exception handlers."""
+    """Consistent API error response returned by registered exception handlers."""
 
     error: str
-    detail: str | dict[str, Any] | None = None
+    code: str | None = None
+    detail: str | dict[str, Any] | list[dict[str, Any]] | None = None
+    request_id: str | None = None

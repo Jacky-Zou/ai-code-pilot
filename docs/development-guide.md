@@ -139,3 +139,19 @@ Completed logging validation includes:
 - Focused logger and affected-module tests: `19 passed`.
 - Compile check with a temporary `PYTHONPYCACHEPREFIX` to avoid locked local cache files.
 - Full backend regression test with a temporary Chroma vector store path: `115 passed`.
+
+## Phase 6 Exception Validation 🚦
+
+The exception quality task verifies:
+
+- Domain errors keep the existing `error` and `detail` response fields.
+- API errors include stable machine-readable `code` values such as `TOOL_ERROR` and `VALIDATION_ERROR`.
+- `X-Request-ID` is copied to `request_id` when present for response/log correlation.
+- Pydantic validation errors are passed through FastAPI's JSON encoder before response serialization.
+- API schemas document string, object, and list-shaped error details.
+
+Completed exception validation includes:
+
+- Focused exception/API schema tests: `20 passed`.
+- Compile check with a temporary `PYTHONPYCACHEPREFIX` to avoid locked local cache files.
+- Full backend regression test with a temporary Chroma vector store path: `115 passed`.

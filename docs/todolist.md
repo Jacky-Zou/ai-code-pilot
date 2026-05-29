@@ -93,7 +93,7 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 |---|---|---|---|---|---|
 | P6-T01 | Improve config | Refine settings validation and defaults | `backend/app/core/config.py` | Config tests pass | DONE ✅ |
 | P6-T02 | Improve logging | Add consistent logger usage across backend | `backend/app/core/logger.py`, backend modules | Logging smoke tests pass | DONE ✅ |
-| P6-T03 | Improve exceptions | Normalize domain/API errors | `backend/app/core/exceptions.py` | Exception tests pass | TODO |
+| P6-T03 | Improve exceptions | Normalize domain/API errors | `backend/app/core/exceptions.py` | Exception tests pass | DONE ✅ |
 | P6-T04 | Expand tests | Cover config, factory, tools, registry, chunker, retriever, API | `backend/tests/*` | `pytest` | TODO |
 | P6-T05 | Configure ruff | Add lint config | `pyproject.toml` or `ruff.toml` | `ruff check .` | TODO |
 | P6-T06 | Configure black | Add format config | `pyproject.toml` | `black --check .` | TODO |

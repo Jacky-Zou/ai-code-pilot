@@ -305,6 +305,8 @@ Phase 6 configuration validation confirms settings fail fast for unsupported pro
 
 Phase 6 logging validation confirms backend modules use the shared logger format across Agent execution, API routes, RAG indexing/search, and tool registry creation without logging API keys, full prompts, file contents, or large user payloads.
 
+Phase 6 exception validation confirms API errors keep the existing `error` and `detail` fields while adding stable machine-readable `code` values and optional `request_id` correlation from `X-Request-ID`.
+
 ## Documentation 📚
 
 - [Architecture](docs/architecture.md)
