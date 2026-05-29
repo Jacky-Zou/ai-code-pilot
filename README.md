@@ -248,6 +248,12 @@ Phase 5 starts by adding bounded conversation memory:
 - Exports role/content messages in the format expected by the LLM provider layer.
 - Keeps system prompts outside rolling memory so tool and safety instructions remain stable.
 
+Phase 5 also adds an `analyze_log(log_text)` tool:
+
+- Counts log levels and normalizes `WARN` to `WARNING`.
+- Extracts error lines, exception names, and Python traceback frames.
+- Returns compact debugging recommendations without executing commands or modifying files.
+
 ## Phase Validation ✅
 
 At the end of each phase, AICodePilot runs a full project sanity check before moving forward:

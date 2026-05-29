@@ -59,3 +59,13 @@ The conversation memory task verifies:
 - History is trimmed by complete user turns rather than arbitrary message count.
 - Blank messages and invalid memory limits fail clearly.
 - `pytest` runs without pytest cache warnings by disabling the cache provider in `pytest.ini`.
+
+## Phase 5 Log Tool Validation 🧾
+
+The log analyzer task verifies:
+
+- Severity counts for `INFO`, `WARNING`, `ERROR`, and related levels.
+- Extraction of issue lines and exception names.
+- Python traceback frame parsing with file path, line number, and function name.
+- Result limiting through `max_issues`.
+- Read-only behavior with no filesystem or shell side effects.

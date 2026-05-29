@@ -80,7 +80,7 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 | ID | Task | Description | Files | Validation | Status |
 |---|---|---|---|---|---|
 | P5-T01 | Implement conversation memory | Store bounded multi-turn context | `backend/app/memory/conversation_memory.py` | Memory tests pass | DONE ✅ |
-| P5-T02 | Implement log analyzer | Add `analyze_log(log_text)` tool | `backend/app/tools/*` | Tool tests pass | TODO |
+| P5-T02 | Implement log analyzer | Add `analyze_log(log_text)` tool | `backend/app/tools/*` | Tool tests pass | DONE ✅ |
 | P5-T03 | Implement safe shell tool | Add restricted `run_command(command, cwd)` | `backend/app/tools/shell_tools.py` | Shell safety tests pass | TODO |
 | P5-T04 | Implement patch generation | Generate diff suggestions without auto-editing | `backend/app/agent/*` | Patch output tests pass | TODO |
 | P5-T05 | Connect advanced tools | Register memory, log, shell, patch capabilities in Agent | `backend/app/tools/registry.py`, `backend/app/agent/*` | Agent tests pass | TODO |
