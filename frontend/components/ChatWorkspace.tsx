@@ -8,7 +8,6 @@ import {
   Code2,
   Database,
   FolderSearch,
-  GitBranch,
   Loader2,
   Play,
   Search,
@@ -23,6 +22,7 @@ import {
   sendChat
 } from "@/lib/api";
 import { ProviderSelector, type ProviderSelection } from "@/components/ProviderSelector";
+import { ToolCallTimeline } from "@/components/ToolCallTimeline";
 
 type ChatMessage = {
   id: string;
@@ -324,29 +324,7 @@ export function ChatWorkspace() {
         </section>
 
         <aside className="space-y-4">
-          <section className="rounded-lg border border-border bg-panel p-4 shadow-soft">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <GitBranch className="h-4 w-4 text-primary" aria-hidden="true" />
-              Tool Calls
-            </div>
-            <div className="space-y-2">
-              {(latestResponse?.tool_calls ?? []).map((toolCall, index) => (
-                <div
-                  className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm"
-                  key={`${toolCall.name}-${index}`}
-                >
-                  <span className="min-w-0 truncate">{toolCall.name}</span>
-                  <CheckCircle2
-                    className={`h-4 w-4 shrink-0 ${toolCall.error ? "text-warning" : "text-accent"}`}
-                    aria-hidden="true"
-                  />
-                </div>
-              ))}
-              {!latestResponse?.tool_calls.length ? (
-                <p className="text-sm text-muted">No tool calls yet.</p>
-              ) : null}
-            </div>
-          </section>
+          <ToolCallTimeline toolCalls={latestResponse?.tool_calls ?? []} />
 
           <section className="rounded-lg border border-border bg-panel p-4 shadow-soft">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
