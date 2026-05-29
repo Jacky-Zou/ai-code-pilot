@@ -27,3 +27,4 @@ tmp/
 temp/
 
 backend/data/*
+.ruff_cache/

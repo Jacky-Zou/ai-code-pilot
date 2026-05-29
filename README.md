@@ -309,6 +309,8 @@ Phase 6 exception validation confirms API errors keep the existing `error` and `
 
 Phase 6 expanded testing adds coverage for the LLM HTTP client, Agent planner, Agent facade, and isolated test vector-store setup so local Chroma state does not leak into regression runs.
 
+Phase 6 lint validation adds a Ruff configuration for correctness-level Python checks and keeps the Ruff cache in a temporary directory to avoid local workspace permission noise.
+
 ## Documentation 📚
 
 - [Architecture](docs/architecture.md)

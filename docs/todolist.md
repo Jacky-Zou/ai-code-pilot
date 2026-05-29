@@ -95,7 +95,7 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 | P6-T02 | Improve logging | Add consistent logger usage across backend | `backend/app/core/logger.py`, backend modules | Logging smoke tests pass | DONE ✅ |
 | P6-T03 | Improve exceptions | Normalize domain/API errors | `backend/app/core/exceptions.py` | Exception tests pass | DONE ✅ |
 | P6-T04 | Expand tests | Cover config, factory, tools, registry, chunker, retriever, API | `backend/tests/*` | `pytest` | DONE ✅ |
-| P6-T05 | Configure ruff | Add lint config | `pyproject.toml` or `ruff.toml` | `ruff check .` | TODO |
+| P6-T05 | Configure ruff | Add lint config | `pyproject.toml` or `ruff.toml` | `ruff check .` | DONE ✅ |
 | P6-T06 | Configure black | Add format config | `pyproject.toml` | `black --check .` | TODO |
 | P6-T07 | Configure mypy | Add typing config | `pyproject.toml` | `mypy backend/app` | TODO |
 | P6-T08 | Add GitHub Actions draft | Add CI workflow draft | `.github/workflows/ci.yml` | Workflow file exists | TODO |

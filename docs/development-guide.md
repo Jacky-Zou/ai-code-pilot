@@ -171,3 +171,18 @@ Completed expanded test validation includes:
 - Focused new and affected tests: `13 passed`.
 - Full backend regression test: `125 passed`.
 - Compile check with a temporary `PYTHONPYCACHEPREFIX`.
+
+## Phase 6 Ruff Validation 🧹
+
+The Ruff configuration task verifies:
+
+- `pyproject.toml` defines the first Python lint gate.
+- Ruff targets Python 3.10 and checks correctness-level rules `E` and `F`.
+- Generated/cache-heavy paths such as `.venv`, `.next`, `node_modules`, and `data/vector_store` are excluded.
+- Ruff cache writes go to a temporary project-specific directory to avoid local `.ruff_cache` permission noise.
+
+Completed Ruff validation includes:
+
+- `ruff check .`: passed.
+- Full backend regression test: `125 passed`.
+- Compile check with a temporary `PYTHONPYCACHEPREFIX`.
