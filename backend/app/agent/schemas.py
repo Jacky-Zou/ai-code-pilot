@@ -36,9 +36,16 @@ class CodeReference(BaseModel):
     score: float | None = None
 
 
+class PatchSuggestion(BaseModel):
+    file_path: str
+    diff: str = Field(min_length=1)
+    summary: str | None = None
+
+
 class AgentResponse(BaseModel):
     answer: str
     provider: str
     model: str
     tool_calls: list[ToolResult] = Field(default_factory=list)
     references: list[CodeReference] = Field(default_factory=list)
+    patch_suggestions: list[PatchSuggestion] = Field(default_factory=list)

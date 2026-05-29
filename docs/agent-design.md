@@ -68,6 +68,12 @@ The tool rejects command chaining, pipes, redirects, command substitution, and d
 
 Like the other advanced tools, this task implements and tests the shell tool independently. Default Agent registration is handled by the later Phase 5 integration task.
 
+## Patch Suggestions 🧩
+
+Phase 5 adds a safe patch suggestion primitive for development assistance. `generate_patch_suggestion` receives a project-relative path, original text, and proposed updated text, then returns a unified diff stored in `PatchSuggestion`.
+
+The patcher is deliberately pure: it never opens files, writes files, or applies changes. This keeps the Agent in an advisory role, where users can inspect generated diffs before deciding whether to apply them.
+
 ## API Integration 🌐
 
 Phase 3 exposes the same Agent through `POST /api/chat`. The API layer does not bypass the Agent loop; it validates the request, passes through `message`, `project_path`, `provider`, and `model`, then returns `answer`, `tool_calls`, and `references`.

@@ -40,6 +40,8 @@ The `run_command(command, cwd)` shell tool is implemented with strict boundaries
 - Shell chaining, pipes, redirects, command substitution, and script download/execute patterns are blocked.
 - Output is captured as `stdout`, `stderr`, `exit_code`, and timeout state.
 
+Patch suggestions are advisory only. The patch generator compares in-memory text and returns unified diff strings, but it never writes files or applies patches automatically.
+
 ## Phase Checks ✅
 
 Every phase completion includes tests and documentation review to ensure new capabilities do not weaken existing file, provider, RAG, or API safety boundaries.

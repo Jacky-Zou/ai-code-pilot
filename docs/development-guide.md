@@ -79,3 +79,12 @@ The safe shell task verifies:
 - Dangerous commands and shell control operators are rejected.
 - Timeout, non-zero exit code, `stdout`, and `stderr` are captured in structured output.
 - Windows command parsing preserves executable paths and quoted arguments safely.
+
+## Phase 5 Patch Validation 🧩
+
+The patch suggestion task verifies:
+
+- Unified diffs include `--- a/...` and `+++ b/...` paths.
+- No-op changes are rejected.
+- Absolute paths and parent-directory targets are rejected.
+- Multi-file patch suggestions can be generated without touching the filesystem.

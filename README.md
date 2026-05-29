@@ -261,6 +261,12 @@ The `run_command(command, cwd)` tool is implemented with safety boundaries:
 - Blocks destructive commands such as `rm`, `del`, `format`, `shutdown`, and related aliases.
 - Captures `stdout`, `stderr`, `exit_code`, and timeout state.
 
+Patch suggestions are generated as reviewable unified diffs:
+
+- `PatchSuggestion` stores `file_path`, `diff`, and optional `summary`.
+- `generate_patch_suggestion` compares original and updated text in memory.
+- Patch generation never opens, writes, or mutates target files automatically.
+
 ## Phase Validation ✅
 
 At the end of each phase, AICodePilot runs a full project sanity check before moving forward:

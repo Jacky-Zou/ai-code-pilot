@@ -1,7 +1,7 @@
 ﻿import pytest
 from pydantic import ValidationError
 
-from app.agent.schemas import AgentAction, AgentRequest, AgentResponse, ToolResult
+from app.agent.schemas import AgentAction, AgentRequest, AgentResponse, PatchSuggestion, ToolResult
 
 
 def test_agent_request_requires_message() -> None:
@@ -21,10 +21,18 @@ def test_agent_response_defaults() -> None:
 
     assert response.tool_calls == []
     assert response.references == []
+    assert response.patch_suggestions == []
 
 
 def test_tool_result_can_store_error() -> None:
     result = ToolResult(name="read_file", error="missing")
 
     assert result.error == "missing"
+
+
+def test_agent_response_can_store_patch_suggestions() -> None:
+    patch = PatchSuggestion(file_path="app.py", diff="--- a/app.py\n+++ b/app.py\n@@\n-old\n+new")
+    response = AgentResponse(answer="ok", provider="openai", model="gpt-5.2", patch_suggestions=[patch])
+
+    assert response.patch_suggestions[0].file_path == "app.py"
 
