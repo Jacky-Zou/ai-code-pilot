@@ -110,7 +110,7 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 | P7-T03 | Write docker-compose | Start backend and frontend together | `docker-compose.yml` | `docker compose up --build` starts services | DONE ✅ |
 | P7-T04 | Refine env example | Ensure Docker env variables are documented | `.env.example` | Manual field check | DONE ✅ |
 | P7-T05 | Update deployment docs | Document Docker deployment | `docs/deployment.md`, `README.md`, `docs/todolist.md` | Docs updated | DONE ✅ |
-| P7-T06 | Commit Phase 7 | Commit Docker deployment | repository | `git log --oneline -1` shows Phase 7 commit | TODO |
+| P7-T06 | Commit Phase 7 | Commit Docker deployment | repository | `git log --oneline -1` shows Phase 7 commit | DONE ✅ |
 
 ## Phase 8: Documentation and Resume Packaging
 
