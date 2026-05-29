@@ -50,3 +50,12 @@ Completed Phase 4 validation includes:
 - Frontend `npm run lint`.
 - Frontend `npm run build`.
 - HTTP smoke test against a local Next.js server: `STATUS=200`.
+
+## Phase 5 Memory Validation 🧠
+
+The conversation memory task verifies:
+
+- Recent user, assistant, and tool messages are stored in LLM-ready order.
+- History is trimmed by complete user turns rather than arbitrary message count.
+- Blank messages and invalid memory limits fail clearly.
+- `pytest` runs without pytest cache warnings by disabling the cache provider in `pytest.ini`.

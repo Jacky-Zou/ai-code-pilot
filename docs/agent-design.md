@@ -46,6 +46,14 @@ The executor parses the JSON, dispatches tool actions through `ToolRegistry`, re
 7. Send tool result back to LLM for final answer.
 8. Return answer, provider, model, tool calls, and references.
 
+## Conversation Memory 🧠
+
+Phase 5 introduces `ConversationMemory` as a bounded memory primitive for multi-turn development assistance. It stores recent user, assistant, and tool messages with a stable conversation id and trims history by complete user turns.
+
+The memory exports provider-ready `role` / `content` messages while keeping the system prompt outside rolling history, so Agent safety instructions and tool descriptions remain explicit on every request.
+
+This task only adds the tested memory module. Wiring memory into the Agent runtime is handled by the later Phase 5 integration task, which keeps this step small and easy to validate.
+
 ## API Integration 🌐
 
 Phase 3 exposes the same Agent through `POST /api/chat`. The API layer does not bypass the Agent loop; it validates the request, passes through `message`, `project_path`, `provider`, and `model`, then returns `answer`, `tool_calls`, and `references`.

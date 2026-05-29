@@ -239,6 +239,15 @@ Open:
 http://127.0.0.1:3000
 ```
 
+## Advanced Agent Progress 🧠
+
+Phase 5 starts by adding bounded conversation memory:
+
+- Stores recent user, assistant, and tool messages with a conversation id.
+- Trims history by complete user turns so follow-up context stays useful but bounded.
+- Exports role/content messages in the format expected by the LLM provider layer.
+- Keeps system prompts outside rolling memory so tool and safety instructions remain stable.
+
 ## Phase Validation ✅
 
 At the end of each phase, AICodePilot runs a full project sanity check before moving forward:
