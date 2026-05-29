@@ -1,6 +1,6 @@
-# Deployment 🚢
+# Deployment 🚀
 
-AICodePilot supports local backend execution today and will support full Docker deployment after Phase 7.
+AICodePilot supports local backend and frontend execution today. Full Docker deployment is completed in Phase 7.
 
 ## Local Backend 🌐
 
@@ -19,9 +19,25 @@ Open:
 http://localhost:8000/docs
 ```
 
-## Planned Frontend 🖥️
+## Local Frontend 🖥️
 
-The Next.js frontend is planned for Phase 4. It will connect to the FastAPI service for chat, project indexing, provider selection, tool-call tracing, and code references.
+Start the Next.js frontend in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:3000
+```
+
+The frontend calls `NEXT_PUBLIC_API_BASE_URL` when it is configured. Without that variable, it uses `http://localhost:8000`.
+
+The Phase 4 UI connects to the FastAPI service for chat, project indexing, provider selection, tool-call tracing, and code references.
 
 ## Planned Docker Deployment 🐳
 
@@ -36,5 +52,5 @@ Docker files are completed in Phase 7.
 Deployment validation grows by phase:
 
 - Phase 3: FastAPI app creation, OpenAPI schema, health route, and backend tests.
-- Phase 4: frontend install/build and browser workflow.
+- Phase 4: frontend install, typecheck, lint, production build, and browser workflow.
 - Phase 7: `docker compose up --build` starts backend and frontend together.

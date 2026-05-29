@@ -106,6 +106,22 @@ Then open:
 http://localhost:8000/docs
 ```
 
+Run the web frontend in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open:
+
+```text
+http://127.0.0.1:3000
+```
+
+The frontend uses `NEXT_PUBLIC_API_BASE_URL` when it is set, and falls back to `http://localhost:8000`.
+
 The final Docker workflow will be:
 
 ```bash
@@ -182,14 +198,23 @@ API requests can override the default provider/model per call. Full endpoint sch
 
 ## Web UI Progress 🖥️
 
-Phase 4 currently provides a Next.js workspace with:
+Phase 4 provides a usable Next.js workspace for the backend Agent APIs:
 
-- OpenAI / DeepSeek provider and model selection.
-- Typed API client for health, chat, project indexing, and project search.
-- Agent chat workflow connected to `/api/chat`.
-- Project indexing workflow connected to `/api/projects/index`.
-- Tool call timeline for latest Agent responses.
-- Dedicated code reference panel for paths, line numbers, snippets, and scores.
+- 🤖 **Agent chat workspace**: send codebase questions to `/api/chat`.
+- 🧭 **Provider and model selection**: switch between OpenAI and DeepSeek per request.
+- 📁 **Project indexing workflow**: submit a local project path to `/api/projects/index`.
+- 🧪 **Typed API client**: frontend calls are centralized in `frontend/lib/api.ts`.
+- 🧰 **Tool call timeline**: inspect which tools the Agent invoked and what each returned.
+- 🔎 **Code references**: review file paths, line ranges, snippets, and retrieval scores.
+
+Use the interface in this order:
+
+1. Start the FastAPI backend at `http://localhost:8000`.
+2. Start the frontend at `http://127.0.0.1:3000`.
+3. Select a provider and model.
+4. Enter the target project path and index it.
+5. Ask a codebase question in the chat panel.
+6. Review tool calls and code references beside the answer.
 
 Run the frontend:
 
@@ -197,6 +222,15 @@ Run the frontend:
 cd frontend
 npm install
 npm run dev
+```
+
+Validate the frontend:
+
+```bash
+cd frontend
+npm run typecheck
+npm run lint
+npm run build
 ```
 
 Open:
