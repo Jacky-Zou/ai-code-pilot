@@ -303,6 +303,8 @@ Phase 5 validation confirms bounded memory, log analysis, safe shell execution, 
 
 Phase 6 configuration validation confirms settings fail fast for unsupported providers, embedding backends, vector stores, log levels, and invalid base URLs while preserving the OpenAI default and DeepSeek override path.
 
+Phase 6 logging validation confirms backend modules use the shared logger format across Agent execution, API routes, RAG indexing/search, and tool registry creation without logging API keys, full prompts, file contents, or large user payloads.
+
 ## Documentation 📚
 
 - [Architecture](docs/architecture.md)

@@ -123,3 +123,19 @@ Completed config validation includes:
 
 - Focused config tests: `10 passed`.
 - Full backend regression test with a temporary Chroma vector store path: `112 passed`.
+
+## Phase 6 Logging Validation 🪵
+
+The logging quality task verifies:
+
+- `configure_logging(force=True)` can rebuild handlers after environment changes.
+- `get_logger(__name__)` emits the shared timestamp, level, module, and message format.
+- Agent execution logs provider/model metadata, tool selection, tool completion, and tool failures.
+- API routes log request/response metadata without dumping user prompts or secret values.
+- RAG logs indexing and search counts, while the tool registry logs tool registration metadata.
+
+Completed logging validation includes:
+
+- Focused logger and affected-module tests: `19 passed`.
+- Compile check with a temporary `PYTHONPYCACHEPREFIX` to avoid locked local cache files.
+- Full backend regression test with a temporary Chroma vector store path: `115 passed`.

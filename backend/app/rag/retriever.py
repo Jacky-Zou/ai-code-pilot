@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from app.core.config import Settings, get_settings
+from app.core.logger import get_logger
 from app.rag.chunker import CodeChunker
 from app.rag.embeddings import BaseEmbeddingClient, create_embedding_client
 from app.rag.indexer import ProjectIndexer
@@ -10,6 +11,7 @@ from app.rag.vector_store import BaseVectorStore, create_vector_store, load_vect
 
 _QUERY_TOKEN_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|[\u4e00-\u9fff]+")
 _TEST_OR_DOC_MARKERS = ("/tests/", "tests/", "docs/", "README.md")
+logger = get_logger(__name__)
 
 
 class CodeRetriever:
@@ -44,6 +46,7 @@ class CodeRetriever:
         )
 
     def index_project(self, project_path: str | Path, save_path: str | Path | None = None) -> dict[str, int]:
+        logger.info("RAG indexing started project_path=%s save_path_present=%s", project_path, save_path is not None)
         if save_path is not None and not self._vector_store_injected and self.settings.vector_store_backend == "chroma":
             # Chroma persists to the directory configured when the collection is
             # created. Recreate the default store at save_path before indexing so
@@ -62,13 +65,17 @@ class CodeRetriever:
         if save_path is not None:
             self.vector_store.save(save_path)
 
+        logger.info("RAG indexing completed indexed_files=%s chunks=%s", len(files), len(chunks))
         return {"indexed_files": len(files), "chunks": len(chunks)}
 
     def search(self, query: str, top_k: int = 5) -> list[RetrievedChunk]:
+        logger.info("RAG search started top_k=%s", top_k)
         query_embedding = self.embedding_client.embed_query(query)
         candidate_count = max(top_k * 20, 50)
         candidates = self.vector_store.search(query_embedding, top_k=candidate_count)
-        return self._rerank(query, candidates)[:top_k]
+        results = self._rerank(query, candidates)[:top_k]
+        logger.info("RAG search completed candidates=%s results=%s", len(candidates), len(results))
+        return results
 
     def index_and_search(self, project_path: str | Path, query: str, top_k: int = 5) -> list[RetrievedChunk]:
         self.index_project(project_path)

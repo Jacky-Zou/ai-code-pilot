@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends
 
 from app.agent.agent import AICodePilotAgent
 from app.api.schemas import ChatRequest, ChatResponse
+from app.core.logger import get_logger
 
 router = APIRouter(prefix="/api", tags=["chat"])
+logger = get_logger(__name__)
 
 
 def get_agent() -> AICodePilotAgent:
@@ -16,11 +18,24 @@ def get_agent() -> AICodePilotAgent:
 def chat(request: ChatRequest, agent: AICodePilotAgent = Depends(get_agent)) -> ChatResponse:
     """Run the coding Agent for one user message and return its API shape."""
 
+    logger.info(
+        "Chat request received provider=%s model=%s project_path_present=%s",
+        request.provider or "default",
+        request.model or "default",
+        request.project_path is not None,
+    )
     response = agent.run(
         message=request.message,
         project_path=request.project_path,
         provider=request.provider,
         model=request.model,
+    )
+    logger.info(
+        "Chat request completed provider=%s model=%s tool_calls=%s references=%s",
+        response.provider,
+        response.model,
+        len(response.tool_calls),
+        len(response.references),
     )
     return ChatResponse(
         answer=response.answer,

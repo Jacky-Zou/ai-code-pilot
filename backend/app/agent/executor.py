@@ -6,12 +6,14 @@ from app.agent.prompts import build_system_prompt
 from app.agent.schemas import AgentRequest, AgentResponse, CodeReference, PatchSuggestion, ToolResult
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AICodePilotError
+from app.core.logger import get_logger
 from app.llm.base import BaseLLMProvider
 from app.llm.factory import LLMProviderFactory
 from app.memory.conversation_memory import ConversationMemory
 from app.tools.registry import ToolRegistry, create_default_registry
 
 _PROJECT_PATH_TOOLS = {"list_files", "read_file", "search_text", "retrieve_code", "run_command"}
+logger = get_logger(__name__)
 
 
 class AgentExecutor:
@@ -35,11 +37,19 @@ class AgentExecutor:
         user_content = self._build_user_content(request)
         messages = self._build_messages(system_prompt, user_content)
 
+        logger.info(
+            "Agent run started provider=%s model=%s project_path_present=%s memory_enabled=%s",
+            provider_name,
+            model,
+            bool(request.project_path),
+            self.memory is not None,
+        )
         first_response = llm.chat(messages, model=model)
         action = parse_agent_action(first_response)
 
         if action.type == "final":
             self._remember_turn(user_content, action.answer or "")
+            logger.info("Agent run completed without tool provider=%s model=%s", provider_name, model)
             return AgentResponse(
                 answer=action.answer or "",
                 provider=provider_name,
@@ -55,12 +65,16 @@ class AgentExecutor:
         if request.project_path and action.tool in _PROJECT_PATH_TOOLS and "project_path" not in arguments:
             arguments["project_path"] = request.project_path
 
+        logger.info("Agent selected tool=%s argument_keys=%s", action.tool, sorted(arguments))
         tool = self.registry.get(action.tool)
         tool_result = ToolResult(name=action.tool, arguments=arguments)
         try:
             tool_result.result = tool.run(**arguments)
         except Exception as exc:
             tool_result.error = str(exc)
+            logger.warning("Tool execution failed tool=%s error=%s", action.tool, exc)
+        else:
+            logger.info("Tool execution completed tool=%s", action.tool)
 
         summary_messages = [
             *messages,
@@ -74,6 +88,13 @@ class AgentExecutor:
         final_action = parse_agent_action(final_response)
         answer = final_action.answer if final_action.type == "final" else final_response
         self._remember_turn(user_content, answer or "", tool_result)
+        logger.info(
+            "Agent run completed with tool provider=%s model=%s tool=%s tool_error=%s",
+            provider_name,
+            model,
+            action.tool,
+            bool(tool_result.error),
+        )
 
         return AgentResponse(
             answer=answer or "",
