@@ -97,3 +97,12 @@ The integration task verifies:
 - `run_command` receives `project_path` injection through the Agent executor.
 - Optional conversation memory is included in LLM message history and updated after responses.
 - Tool-returned `patch_suggestions` are validated and forwarded without applying diffs.
+
+Completed Phase 5 validation includes:
+
+- Full backend regression test with a temporary Chroma vector store path: `106 passed`.
+- Frontend `npm run typecheck`.
+- Frontend `npm run lint`.
+- Frontend `npm run build`.
+- HTTP smoke test against a local Next.js server: `STATUS=200`.
+- TodoList and security documentation review for memory, log, shell, and patch boundaries.

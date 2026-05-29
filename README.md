@@ -288,6 +288,8 @@ Phase 3 validation confirms the FastAPI backend exposes `/api/health`, `/api/cha
 
 Phase 4 validation confirms the Next.js frontend builds successfully, renders over HTTP, and keeps the provider selector, project indexing, Agent chat, tool-call timeline, and code reference workflow aligned with the backend APIs.
 
+Phase 5 validation confirms bounded memory, log analysis, safe shell execution, patch suggestions, and advanced tool integration are covered by backend tests, documented security boundaries, frontend type/lint checks, production build, and HTTP smoke testing.
+
 ## Documentation 📚
 
 - [Architecture](docs/architecture.md)
