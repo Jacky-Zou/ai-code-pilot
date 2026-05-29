@@ -3,7 +3,7 @@ from typing import Any
 
 from app.agent.planner import parse_agent_action
 from app.agent.prompts import build_system_prompt
-from app.agent.schemas import AgentRequest, AgentResponse, CodeReference, PatchSuggestion, ToolResult
+from app.agent.schemas import AgentAction, AgentRequest, AgentResponse, CodeReference, PatchSuggestion, ToolResult
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AICodePilotError
 from app.core.logger import get_logger
@@ -13,6 +13,7 @@ from app.memory.conversation_memory import ConversationMemory
 from app.tools.registry import ToolRegistry, create_default_registry
 
 _PROJECT_PATH_TOOLS = {"list_files", "read_file", "search_text", "retrieve_code", "run_command"}
+_MAX_TOOL_STEPS = 5
 logger = get_logger(__name__)
 
 
@@ -44,20 +45,80 @@ class AgentExecutor:
             bool(request.project_path),
             self.memory is not None,
         )
-        first_response = llm.chat(messages, model=model)
-        action = parse_agent_action(first_response)
+        tool_results: list[ToolResult] = []
+        answer = ""
+        current_messages = list(messages)
 
-        if action.type == "final":
-            self._remember_turn(user_content, action.answer or "")
-            logger.info("Agent run completed without tool provider=%s model=%s", provider_name, model)
-            return AgentResponse(
-                answer=action.answer or "",
-                provider=provider_name,
-                model=model,
-                tool_calls=[],
-                references=[],
+        for step in range(1, _MAX_TOOL_STEPS + 1):
+            # Pass a shallow copy so later tool-result messages do not mutate
+            # the exact message list already handed to a provider or test fake.
+            raw_response = llm.chat(list(current_messages), model=model)
+            action = parse_agent_action(raw_response)
+
+            if action.type == "final":
+                answer = action.answer or ""
+                if answer:
+                    break
+                if tool_results:
+                    current_messages.extend(
+                        [
+                            {"role": "assistant", "content": raw_response},
+                            {
+                                "role": "user",
+                                "content": (
+                                    "Your previous response did not include a final answer. "
+                                    "Return only a concise JSON final answer with paths, line numbers, "
+                                    "and an explanation based on the tool results. Do not include thinking tags."
+                                ),
+                            },
+                        ]
+                    )
+                    continue
+                break
+
+            tool_result = self._execute_action(action, request)
+            tool_results.append(tool_result)
+            current_messages.extend(
+                [
+                    {"role": "assistant", "content": raw_response},
+                    {
+                        "role": "user",
+                        "content": "Tool result:\n" + json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str),
+                    },
+                ]
             )
+            logger.info(
+                "Agent tool step completed provider=%s model=%s step=%s tool=%s tool_error=%s",
+                provider_name,
+                model,
+                step,
+                tool_result.name,
+                bool(tool_result.error),
+            )
+        else:
+            answer = ""
 
+        if not answer:
+            answer = self._build_fallback_answer(tool_results)
+
+        self._remember_turn(user_content, answer, tool_results[-1] if tool_results else None)
+        logger.info(
+            "Agent run completed provider=%s model=%s tool_calls=%s",
+            provider_name,
+            model,
+            len(tool_results),
+        )
+
+        return AgentResponse(
+            answer=answer,
+            provider=provider_name,
+            model=model,
+            tool_calls=tool_results,
+            references=self._extract_references_from_results(tool_results),
+            patch_suggestions=self._extract_patch_suggestions_from_results(tool_results),
+        )
+
+    def _execute_action(self, action: AgentAction, request: AgentRequest) -> ToolResult:
         if not action.tool:
             raise AICodePilotError("Agent action is missing tool name")
 
@@ -75,35 +136,34 @@ class AgentExecutor:
             logger.warning("Tool execution failed tool=%s error=%s", action.tool, exc)
         else:
             logger.info("Tool execution completed tool=%s", action.tool)
+        return tool_result
 
-        summary_messages = [
-            *messages,
-            {"role": "assistant", "content": first_response},
-            {
-                "role": "user",
-                "content": "Tool result:\n" + json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str),
-            },
-        ]
-        final_response = llm.chat(summary_messages, model=model)
-        final_action = parse_agent_action(final_response)
-        answer = final_action.answer if final_action.type == "final" else final_response
-        self._remember_turn(user_content, answer or "", tool_result)
-        logger.info(
-            "Agent run completed with tool provider=%s model=%s tool=%s tool_error=%s",
-            provider_name,
-            model,
-            action.tool,
-            bool(tool_result.error),
-        )
+    def _build_fallback_answer(self, tool_results: list[ToolResult]) -> str:
+        if not tool_results:
+            return "I could not produce a final answer from the model response."
 
-        return AgentResponse(
-            answer=answer or "",
-            provider=provider_name,
-            model=model,
-            tool_calls=[tool_result],
-            references=self._extract_references(tool_result),
-            patch_suggestions=self._extract_patch_suggestions(tool_result),
-        )
+        lines = ["I executed tools but the model did not return a usable final summary. Relevant results:"]
+        for tool_result in tool_results:
+            if tool_result.error:
+                lines.append(f"- {tool_result.name}: {tool_result.error}")
+                continue
+            if tool_result.name == "read_file" and isinstance(tool_result.result, dict):
+                relative_path = tool_result.result.get("relative_path") or tool_result.result.get("file_path")
+                lines.append(f"- Read `{relative_path}`.")
+            elif tool_result.name == "list_files" and isinstance(tool_result.result, dict):
+                files = [str(item) for item in tool_result.result.get("files", [])]
+                agent_files = [file for file in files if "agent" in file.lower()][:8]
+                if agent_files:
+                    lines.append("- Agent-related files found: " + ", ".join(f"`{file}`" for file in agent_files))
+                else:
+                    lines.append(f"- Listed {tool_result.result.get('count', len(files))} files.")
+            elif tool_result.name == "retrieve_code" and isinstance(tool_result.result, dict):
+                matches = tool_result.result.get("matches", [])[:5]
+                for match in matches:
+                    lines.append(f"- `{match.get('file_path')}` lines {match.get('start_line')}-{match.get('end_line')}")
+            else:
+                lines.append(f"- Ran `{tool_result.name}` successfully.")
+        return "\n".join(lines)
 
     def _build_messages(self, system_prompt: str, user_content: str) -> list[dict[str, str]]:
         if self.memory is None:
@@ -165,6 +225,12 @@ class AgentExecutor:
             ]
         return []
 
+    def _extract_references_from_results(self, tool_results: list[ToolResult]) -> list[CodeReference]:
+        references: list[CodeReference] = []
+        for tool_result in tool_results:
+            references.extend(self._extract_references(tool_result))
+        return references
+
     def _extract_patch_suggestions(self, tool_result: ToolResult) -> list[PatchSuggestion]:
         if tool_result.error or not isinstance(tool_result.result, dict):
             return []
@@ -178,4 +244,10 @@ class AgentExecutor:
                 # Patch suggestions remain advisory data. The executor only
                 # validates and forwards them; it never applies the diff.
                 suggestions.append(PatchSuggestion.model_validate(item))
+        return suggestions
+
+    def _extract_patch_suggestions_from_results(self, tool_results: list[ToolResult]) -> list[PatchSuggestion]:
+        suggestions: list[PatchSuggestion] = []
+        for tool_result in tool_results:
+            suggestions.extend(self._extract_patch_suggestions(tool_result))
         return suggestions

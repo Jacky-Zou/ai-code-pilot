@@ -126,3 +126,90 @@ def test_executor_connects_memory_project_path_and_patch_suggestions(tmp_path: P
     assert provider.calls[0][1]["content"] == "previous question"
     assert provider.calls[0][-1]["content"].endswith("User request: prepare patch")
     assert memory.summary()["turn_count"] == 2
+
+
+def test_executor_executes_provider_tool_type_markdown_action(tmp_path: Path) -> None:
+    agent_file = tmp_path / "agent" / "agent.py"
+    agent_file.parent.mkdir()
+    agent_file.write_text("class AICodePilotAgent:\n    pass\n", encoding="utf-8")
+    provider = FakeProvider(
+        [
+            """```json
+{"type":"read_file","arguments":{"file_path":"agent/agent.py","max_bytes":50000}}
+```
+```json
+{"type":"read_file","arguments":{"file_path":"agent/__init__.py","max_bytes":50000}}
+```""",
+            '{"type":"final","answer":"Agent main flow is implemented in agent/agent.py."}',
+        ]
+    )
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+
+    response = executor.run(AgentRequest(message="where is agent flow", project_path=str(tmp_path)))
+
+    assert response.answer == "Agent main flow is implemented in agent/agent.py."
+    assert response.tool_calls[0].name == "read_file"
+    assert response.tool_calls[0].error is None
+    assert response.references[0].file_path == "agent/agent.py"
+    assert len(provider.calls) == 2
+
+
+def test_executor_continues_until_final_after_multiple_tool_actions(tmp_path: Path) -> None:
+    (tmp_path / "main.py").write_text("from agent.agent import AICodePilotAgent\n", encoding="utf-8")
+    agent_file = tmp_path / "agent" / "agent.py"
+    agent_file.parent.mkdir()
+    agent_file.write_text("class AICodePilotAgent:\n    def run(self):\n        pass\n", encoding="utf-8")
+    provider = FakeProvider(
+        [
+            '{"type":"read_file","arguments":{"file_path":"main.py"}}',
+            '{"type":"read_file","arguments":{"file_path":"agent/agent.py"}}',
+            '{"type":"final","answer":"Agent flow starts in main.py and is implemented in agent/agent.py."}',
+        ]
+    )
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+
+    response = executor.run(AgentRequest(message="where is agent flow", project_path=str(tmp_path)))
+
+    assert response.answer == "Agent flow starts in main.py and is implemented in agent/agent.py."
+    assert [tool_call.name for tool_call in response.tool_calls] == ["read_file", "read_file"]
+    assert [reference.file_path for reference in response.references] == ["main.py", "agent/agent.py"]
+    assert len(provider.calls) == 3
+
+
+def test_executor_reprompts_when_final_answer_only_contains_thinking(tmp_path: Path) -> None:
+    (tmp_path / "main.py").write_text("from agent.agent import AICodePilotAgent\n", encoding="utf-8")
+    provider = FakeProvider(
+        [
+            '{"type":"read_file","arguments":{"file_path":"main.py"}}',
+            "<thinking>I need to answer now</thinking>",
+            '{"type":"final","answer":"Agent startup imports AICodePilotAgent from main.py."}',
+        ]
+    )
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+
+    response = executor.run(AgentRequest(message="where is agent flow", project_path=str(tmp_path)))
+
+    assert response.answer == "Agent startup imports AICodePilotAgent from main.py."
+    assert response.tool_calls[0].name == "read_file"
+    assert len(provider.calls) == 3
+
+
+def test_executor_executes_xml_tool_call_payload(tmp_path: Path) -> None:
+    (tmp_path / "main.py").write_text("from agent.agent import AICodePilotAgent\n", encoding="utf-8")
+    provider = FakeProvider(
+        [
+            """<tool_calls>
+<read_file>
+<file_path>main.py</file_path>
+</read_file>
+</tool_calls>""",
+            '{"type":"final","answer":"Agent startup is visible in main.py."}',
+        ]
+    )
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+
+    response = executor.run(AgentRequest(message="where is agent flow", project_path=str(tmp_path)))
+
+    assert response.answer == "Agent startup is visible in main.py."
+    assert response.tool_calls[0].name == "read_file"
+    assert response.references[0].file_path == "main.py"
