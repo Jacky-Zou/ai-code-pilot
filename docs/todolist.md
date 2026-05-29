@@ -68,7 +68,7 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 | P4-T01 | Initialize Next.js frontend | Create React/Next/Tailwind project structure | `frontend/*` | Frontend installs/builds | DONE ✅ |
 | P4-T02 | Implement API client | Add typed API calls | `frontend/lib/api.ts` | Type check/build passes | DONE ✅ |
 | P4-T03 | Implement provider selector | Support OpenAI and DeepSeek provider/model choices | `frontend/components/ProviderSelector.tsx` | UI renders choices | DONE ✅ |
-| P4-T04 | Implement chat page | Build agent chat workflow | `frontend/app/*` | Manual browser test | TODO |
+| P4-T04 | Implement chat page | Build agent chat workflow | `frontend/app/*` | Manual browser test | DONE ✅ |
 | P4-T05 | Implement project index page | Let user index a project path | `frontend/app/*` | Manual browser test | TODO |
 | P4-T06 | Implement ToolCallTimeline | Display tool call sequence and results | `frontend/components/ToolCallTimeline.tsx` | Component renders sample data | TODO |
 | P4-T07 | Implement CodeReference | Display file paths, lines, snippets, explanations | `frontend/components/CodeReference.tsx` | Component renders sample data | TODO |
