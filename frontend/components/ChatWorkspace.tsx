@@ -15,7 +15,13 @@ import {
   Send
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
-import { ApiClientError, type ChatResponse, sendChat } from "@/lib/api";
+import {
+  ApiClientError,
+  type ChatResponse,
+  type ProjectIndexResponse,
+  indexProject,
+  sendChat
+} from "@/lib/api";
 import { ProviderSelector, type ProviderSelection } from "@/components/ProviderSelector";
 
 type ChatMessage = {
@@ -93,8 +99,13 @@ export function ChatWorkspace() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isSending, setIsSending] = useState(false);
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [indexStats, setIndexStats] = useState<ProjectIndexResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [indexError, setIndexError] = useState<string | null>(null);
 
+  // The right rail should always reflect the newest Agent response, not a stale demo result.
+  // Walking from the end keeps this independent from whether the user sends one or many messages.
   const latestResponse = useMemo(
     () => [...messages].reverse().find((item) => item.response)?.response ?? null,
     [messages]
@@ -112,6 +123,9 @@ export function ChatWorkspace() {
       role: "user",
       content: trimmedMessage
     };
+
+    // Optimistically append the user message before calling the API so the chat feels immediate.
+    // The assistant message is appended only after the backend returns a typed ChatResponse.
     setMessages((current) => [...current, userMessage]);
     setMessage("");
     setError(null);
@@ -137,6 +151,28 @@ export function ChatWorkspace() {
       setError(formatApiError(requestError));
     } finally {
       setIsSending(false);
+    }
+  }
+
+  async function handleIndexProject() {
+    const trimmedProjectPath = projectPath.trim();
+    if (!trimmedProjectPath || isIndexing) {
+      return;
+    }
+
+    // Project indexing is a separate backend workflow from chat. Keeping its status separate
+    // lets users index a repository, see chunk/file counts, and continue chatting afterward.
+    setIsIndexing(true);
+    setIndexError(null);
+    setIndexStats(null);
+
+    try {
+      const stats = await indexProject({ project_path: trimmedProjectPath });
+      setIndexStats(stats);
+    } catch (requestError) {
+      setIndexError(formatApiError(requestError));
+    } finally {
+      setIsIndexing(false);
     }
   }
 
@@ -181,12 +217,35 @@ export function ChatWorkspace() {
               aria-label="Project path"
             />
             <button
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-3 text-sm font-medium text-white"
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-[#8ec5bd]"
+              disabled={isIndexing || !projectPath.trim()}
+              onClick={handleIndexProject}
               type="button"
             >
-              <Database className="h-4 w-4" aria-hidden="true" />
-              Index Project
+              {isIndexing ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Database className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isIndexing ? "Indexing" : "Index Project"}
             </button>
+            {indexStats ? (
+              <div className="mt-3 rounded-md border border-[#b7dfd8] bg-[#effaf8] p-3 text-sm">
+                <div className="flex items-center gap-2 font-medium text-accent">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                  Index ready
+                </div>
+                <p className="mt-2 text-muted">
+                  {indexStats.indexed_files} files, {indexStats.chunks} chunks
+                </p>
+              </div>
+            ) : null}
+            {indexError ? (
+              <div className="mt-3 flex items-start gap-2 rounded-md border border-[#f4c7c7] bg-[#fff4f4] p-3 text-sm text-[#9f1239]">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{indexError}</span>
+              </div>
+            ) : null}
           </section>
         </aside>
 
