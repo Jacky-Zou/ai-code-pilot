@@ -3,7 +3,7 @@ import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
@@ -46,6 +46,24 @@ class RunCommandArgs(BaseModel):
     cwd: str
     project_path: str | None = None
     timeout_seconds: int = Field(default=_DEFAULT_TIMEOUT_SECONDS, ge=1, le=30)
+
+
+def _get_windows_dlls() -> tuple[Any, Any]:
+    """Return Windows DLL handles without requiring `ctypes.windll` on Linux.
+
+    GitHub Actions runs mypy on Ubuntu, where the `ctypes` module deliberately
+    has no `windll` attribute. This helper keeps the Windows-only access behind
+    a runtime platform guard and uses `getattr` so static analysis on non-Windows
+    platforms does not fail while the Windows command parser still uses the
+    native `CommandLineToArgvW` API.
+    """
+
+    if sys.platform != "win32":
+        raise ToolError("Windows command parsing is only available on Windows")
+    windll = getattr(ctypes, "windll", None)
+    if windll is None:
+        raise ToolError("ctypes.windll is unavailable on this Python runtime")
+    return cast(Any, windll).shell32, cast(Any, windll).kernel32
 
 
 class RunCommandTool(BaseTool):
@@ -138,8 +156,7 @@ class RunCommandTool(BaseTool):
         # native parser preserves paths such as `D:\Python\python.exe` while
         # still stripping quotes around arguments like `-c "print(1)"`.
         argc = ctypes.c_int()
-        shell32 = ctypes.windll.shell32
-        kernel32 = ctypes.windll.kernel32
+        shell32, kernel32 = _get_windows_dlls()
         shell32.CommandLineToArgvW.argtypes = [ctypes.c_wchar_p, ctypes.POINTER(ctypes.c_int)]
         shell32.CommandLineToArgvW.restype = ctypes.POINTER(ctypes.c_wchar_p)
         kernel32.LocalFree.argtypes = [ctypes.c_void_p]
