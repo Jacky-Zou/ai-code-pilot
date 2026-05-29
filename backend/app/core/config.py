@@ -1,4 +1,4 @@
-﻿from functools import lru_cache
+from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field, field_validator, model_validator
@@ -33,6 +33,10 @@ class Settings(BaseSettings):
 
     vector_store_path: Path = Field(default=Path("./data/vector_store"), alias="VECTOR_STORE_PATH")
     vector_store_backend: str = Field(default="chroma", alias="VECTOR_STORE_BACKEND")
+    cors_allowed_origins: str = Field(
+        default="http://localhost:3000,http://127.0.0.1:3000",
+        alias="CORS_ALLOWED_ORIGINS",
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -67,6 +71,27 @@ class Settings(BaseSettings):
         if not normalized.startswith(("http://", "https://")):
             raise ValueError("base URL must start with http:// or https://")
         return normalized
+
+    @field_validator("cors_allowed_origins")
+    @classmethod
+    def validate_cors_allowed_origins(cls, value: str) -> str:
+        cls._parse_cors_allowed_origins(value)
+        return value
+
+    @property
+    def cors_allowed_origin_list(self) -> list[str]:
+        return self._parse_cors_allowed_origins(self.cors_allowed_origins)
+
+    @staticmethod
+    def _parse_cors_allowed_origins(value: str) -> list[str]:
+        origins = [item.strip().rstrip("/") for item in value.split(",")]
+        parsed = [origin for origin in origins if origin]
+        if not parsed:
+            raise ValueError("CORS_ALLOWED_ORIGINS must contain at least one origin")
+        for origin in parsed:
+            if origin != "*" and not origin.startswith(("http://", "https://")):
+                raise ValueError("CORS origins must start with http:// or https://")
+        return parsed
 
     @field_validator("llm_model", mode="before")
     @classmethod

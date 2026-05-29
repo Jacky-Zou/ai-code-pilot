@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -30,6 +30,7 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
         "EMBEDDING_MODEL",
         "VECTOR_STORE_PATH",
         "VECTOR_STORE_BACKEND",
+        "CORS_ALLOWED_ORIGINS",
     ):
         monkeypatch.delenv(key, raising=False)
 
@@ -44,6 +45,7 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.vector_store_path == Path("data/vector_store")
     assert settings.vector_store_backend == "chroma"
+    assert settings.cors_allowed_origin_list == ["http://localhost:3000", "http://127.0.0.1:3000"]
 
 
 def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -56,6 +58,7 @@ def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("EMBEDDING_PROVIDER", "LOCAL")
     monkeypatch.setenv("VECTOR_STORE_PATH", "./tmp/vectors")
     monkeypatch.setenv("VECTOR_STORE_BACKEND", "JSON")
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000, https://example.com/")
 
     settings = Settings(_env_file=None)
 
@@ -68,6 +71,7 @@ def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.embedding_provider == "local"
     assert settings.vector_store_path == Path("tmp/vectors")
     assert settings.vector_store_backend == "json"
+    assert settings.cors_allowed_origin_list == ["http://localhost:3000", "https://example.com"]
 
 
 def test_default_model_for_provider() -> None:
@@ -91,6 +95,7 @@ def test_default_model_rejects_unknown_provider() -> None:
         ("EMBEDDING_PROVIDER", "unknown", "Unsupported EMBEDDING_PROVIDER"),
         ("VECTOR_STORE_BACKEND", "sqlite", "Unsupported VECTOR_STORE_BACKEND"),
         ("LOG_LEVEL", "verbose", "Unsupported LOG_LEVEL"),
+        ("CORS_ALLOWED_ORIGINS", "localhost:3000", "CORS origins must start"),
     ],
 )
 def test_settings_rejects_unsupported_runtime_choices(

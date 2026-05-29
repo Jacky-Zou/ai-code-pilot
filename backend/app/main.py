@@ -2,11 +2,13 @@ import argparse
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.agent.agent import AICodePilotAgent
 from app.api.routes_chat import router as chat_router
 from app.api.routes_project import router as project_router
 from app.api.schemas import HealthResponse
+from app.core.config import get_settings
 from app.core.exceptions import AICodePilotError, register_exception_handlers
 from app.core.logger import get_logger
 
@@ -20,6 +22,17 @@ def create_app() -> FastAPI:
         title="AICodePilot",
         description="LLM Agent based AI codebase understanding and development assistant.",
         version="0.1.0",
+    )
+    settings = get_settings()
+    # Browser-based frontend requests include an OPTIONS preflight before POST
+    # calls. Without CORS middleware those preflights return 405, and the UI can
+    # only surface the browser-level "Failed to fetch" message.
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_allowed_origin_list,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
     )
     register_exception_handlers(application)
     application.include_router(chat_router)

@@ -65,6 +65,8 @@ const demoResponse: ChatResponse = {
   ]
 };
 
+const DEFAULT_PROJECT_PATH = process.env.NEXT_PUBLIC_DEFAULT_PROJECT_PATH ?? "/app/app";
+
 const initialMessages: ChatMessage[] = [
   {
     id: "demo-user",
@@ -94,7 +96,7 @@ export function ChatWorkspace() {
     provider: "openai",
     model: "gpt-5.2"
   });
-  const [projectPath, setProjectPath] = useState("D:/code/my_project");
+  const [projectPath, setProjectPath] = useState(DEFAULT_PROJECT_PATH);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isSending, setIsSending] = useState(false);

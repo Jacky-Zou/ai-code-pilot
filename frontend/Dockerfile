@@ -1,4 +1,6 @@
 ARG NODE_IMAGE=node:20-alpine
+ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+ARG NEXT_PUBLIC_DEFAULT_PROJECT_PATH=/app/app
 FROM ${NODE_IMAGE} AS deps
 
 WORKDIR /app
@@ -12,7 +14,13 @@ RUN npm ci
 FROM ${NODE_IMAGE} AS builder
 
 WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_DEFAULT_PROJECT_PATH
+# NEXT_PUBLIC values are compiled into the browser bundle by Next.js, so Docker
+# must provide them during the build stage instead of only at container runtime.
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+    NEXT_PUBLIC_DEFAULT_PROJECT_PATH=${NEXT_PUBLIC_DEFAULT_PROJECT_PATH}
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

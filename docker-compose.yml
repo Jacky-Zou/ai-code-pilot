@@ -38,12 +38,15 @@ services:
       args:
         # The same mirror override pattern is available for Node.js images.
         NODE_IMAGE: ${NODE_IMAGE:-node:20-alpine}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+        NEXT_PUBLIC_DEFAULT_PROJECT_PATH: ${NEXT_PUBLIC_DEFAULT_PROJECT_PATH:-/app/app}
     image: aicodepilot-frontend:local
     container_name: aicodepilot-frontend
     environment:
       # This value is read by browser-side Next.js code, so it must point at
       # the host-published backend port rather than Docker's internal DNS name.
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+      NEXT_PUBLIC_DEFAULT_PROJECT_PATH: ${NEXT_PUBLIC_DEFAULT_PROJECT_PATH:-/app/app}
     ports:
       - "3000:3000"
     depends_on:

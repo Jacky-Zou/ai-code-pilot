@@ -76,3 +76,20 @@ def test_main_app_wires_phase_three_routers() -> None:
     assert index_response.json()["chunks"] == 2
     assert search_response.status_code == 200
     assert search_response.json()["results"][0]["file_path"] == "backend/app/main.py"
+
+
+def test_cors_preflight_allows_frontend_origin() -> None:
+    client = TestClient(create_app())
+
+    response = client.options(
+        "/api/chat",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert "POST" in response.headers["access-control-allow-methods"]
