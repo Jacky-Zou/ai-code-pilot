@@ -1,0 +1,51 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        # Keep the default images conventional while still allowing users in
+        # restricted networks to build with a mirror, for example:
+        # PYTHON_IMAGE=mirror.gcr.io/library/python:3.10-slim docker compose build
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.10-slim}
+    image: aicodepilot-backend:local
+    container_name: aicodepilot-backend
+    env_file:
+      - path: ./.env
+        required: false
+    environment:
+      APP_NAME: ${APP_NAME:-AICodePilot}
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      LLM_MODEL: ${LLM_MODEL:-gpt-5.2}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.2}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-pro}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-chroma}
+      VECTOR_STORE_PATH: /app/data/vector_store
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # The same mirror override pattern is available for Node.js images.
+        NODE_IMAGE: ${NODE_IMAGE:-node:20-alpine}
+    image: aicodepilot-frontend:local
+    container_name: aicodepilot-frontend
+    environment:
+      # This value is read by browser-side Next.js code, so it must point at
+      # the host-published backend port rather than Docker's internal DNS name.
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
