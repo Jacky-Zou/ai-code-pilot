@@ -1,8 +1,10 @@
-﻿from app.core.exceptions import ToolError
+from app.core.exceptions import ToolError
 from app.tools.base import BaseTool
 from app.tools.file_tools import ListFilesTool, ReadFileTool
+from app.tools.log_tools import AnalyzeLogTool
 from app.tools.rag_tools import RetrieveCodeTool
 from app.tools.search_tools import SearchTextTool
+from app.tools.shell_tools import RunCommandTool
 
 
 class ToolRegistry:
@@ -33,5 +35,6 @@ def create_default_registry() -> ToolRegistry:
     registry.register(ReadFileTool())
     registry.register(SearchTextTool())
     registry.register(RetrieveCodeTool())
+    registry.register(AnalyzeLogTool())
+    registry.register(RunCommandTool())
     return registry
-

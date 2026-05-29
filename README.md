@@ -267,6 +267,12 @@ Patch suggestions are generated as reviewable unified diffs:
 - `generate_patch_suggestion` compares original and updated text in memory.
 - Patch generation never opens, writes, or mutates target files automatically.
 
+Advanced tools are now connected to the Agent path:
+
+- `analyze_log` and `run_command` are registered in the default `ToolRegistry`.
+- `AgentExecutor` can use optional bounded conversation memory for follow-up context.
+- Patch suggestions returned by tools are validated and forwarded in `AgentResponse`.
+
 ## Phase Validation ✅
 
 At the end of each phase, AICodePilot runs a full project sanity check before moving forward:

@@ -74,6 +74,12 @@ Phase 5 adds a safe patch suggestion primitive for development assistance. `gene
 
 The patcher is deliberately pure: it never opens files, writes files, or applies changes. This keeps the Agent in an advisory role, where users can inspect generated diffs before deciding whether to apply them.
 
+## Advanced Tool Integration 🔗
+
+The default `ToolRegistry` now includes the advanced `analyze_log` and `run_command` tools alongside file, search, and retrieval tools. `AgentExecutor` also accepts an optional `ConversationMemory` instance, appends bounded prior turns after the current system prompt, and records completed turns after each answer.
+
+Patch suggestions remain advisory. The executor validates any `patch_suggestions` returned by a tool and forwards them in `AgentResponse`, but it never applies the diff.
+
 ## API Integration 🌐
 
 Phase 3 exposes the same Agent through `POST /api/chat`. The API layer does not bypass the Agent loop; it validates the request, passes through `message`, `project_path`, `provider`, and `model`, then returns `answer`, `tool_calls`, and `references`.

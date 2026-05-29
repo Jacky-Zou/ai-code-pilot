@@ -1,4 +1,4 @@
-﻿from typing import Any
+from typing import Any
 
 import pytest
 from pydantic import BaseModel
@@ -6,9 +6,11 @@ from pydantic import BaseModel
 from app.core.exceptions import ToolError
 from app.tools.base import BaseTool
 from app.tools.file_tools import ListFilesTool, ReadFileTool
+from app.tools.log_tools import AnalyzeLogTool
+from app.tools.rag_tools import RetrieveCodeTool
 from app.tools.registry import ToolRegistry, create_default_registry
 from app.tools.search_tools import SearchTextTool
-from app.tools.rag_tools import RetrieveCodeTool
+from app.tools.shell_tools import RunCommandTool
 
 
 class Args(BaseModel):
@@ -57,12 +59,12 @@ def test_registry_describes_tools() -> None:
     assert descriptions[0]["name"] == "sample"
 
 
-def test_default_registry_contains_phase_1_tools() -> None:
+def test_default_registry_contains_agent_tools() -> None:
     registry = create_default_registry()
 
     assert isinstance(registry.get("list_files"), ListFilesTool)
     assert isinstance(registry.get("read_file"), ReadFileTool)
     assert isinstance(registry.get("search_text"), SearchTextTool)
     assert isinstance(registry.get("retrieve_code"), RetrieveCodeTool)
-
-
+    assert isinstance(registry.get("analyze_log"), AnalyzeLogTool)
+    assert isinstance(registry.get("run_command"), RunCommandTool)

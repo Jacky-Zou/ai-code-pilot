@@ -88,3 +88,12 @@ The patch suggestion task verifies:
 - No-op changes are rejected.
 - Absolute paths and parent-directory targets are rejected.
 - Multi-file patch suggestions can be generated without touching the filesystem.
+
+## Phase 5 Advanced Tool Integration Validation 🔗
+
+The integration task verifies:
+
+- `analyze_log` and `run_command` are present in the default `ToolRegistry`.
+- `run_command` receives `project_path` injection through the Agent executor.
+- Optional conversation memory is included in LLM message history and updated after responses.
+- Tool-returned `patch_suggestions` are validated and forwarded without applying diffs.

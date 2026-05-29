@@ -1,16 +1,17 @@
-﻿import json
+import json
 from typing import Any
 
 from app.agent.planner import parse_agent_action
 from app.agent.prompts import build_system_prompt
-from app.agent.schemas import AgentRequest, AgentResponse, CodeReference, ToolResult
+from app.agent.schemas import AgentRequest, AgentResponse, CodeReference, PatchSuggestion, ToolResult
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AICodePilotError
 from app.llm.base import BaseLLMProvider
 from app.llm.factory import LLMProviderFactory
+from app.memory.conversation_memory import ConversationMemory
 from app.tools.registry import ToolRegistry, create_default_registry
 
-_PROJECT_PATH_TOOLS = {"list_files", "read_file", "search_text", "retrieve_code"}
+_PROJECT_PATH_TOOLS = {"list_files", "read_file", "search_text", "retrieve_code", "run_command"}
 
 
 class AgentExecutor:
@@ -18,10 +19,12 @@ class AgentExecutor:
         self,
         registry: ToolRegistry | None = None,
         llm_provider: BaseLLMProvider | None = None,
+        memory: ConversationMemory | None = None,
         settings: Settings | None = None,
     ) -> None:
         self.registry = registry or create_default_registry()
         self.llm_provider = llm_provider
+        self.memory = memory
         self.settings = settings or get_settings()
 
     def run(self, request: AgentRequest) -> AgentResponse:
@@ -29,15 +32,14 @@ class AgentExecutor:
         model = request.model or self.settings.default_model_for_provider(provider_name)
         llm = self.llm_provider or LLMProviderFactory.create(provider_name, settings=self.settings)
         system_prompt = build_system_prompt(self.registry.describe_tools())
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": self._build_user_content(request)},
-        ]
+        user_content = self._build_user_content(request)
+        messages = self._build_messages(system_prompt, user_content)
 
         first_response = llm.chat(messages, model=model)
         action = parse_agent_action(first_response)
 
         if action.type == "final":
+            self._remember_turn(user_content, action.answer or "")
             return AgentResponse(
                 answer=action.answer or "",
                 provider=provider_name,
@@ -71,6 +73,7 @@ class AgentExecutor:
         final_response = llm.chat(summary_messages, model=model)
         final_action = parse_agent_action(final_response)
         answer = final_action.answer if final_action.type == "final" else final_response
+        self._remember_turn(user_content, answer or "", tool_result)
 
         return AgentResponse(
             answer=answer or "",
@@ -78,7 +81,30 @@ class AgentExecutor:
             model=model,
             tool_calls=[tool_result],
             references=self._extract_references(tool_result),
+            patch_suggestions=self._extract_patch_suggestions(tool_result),
         )
+
+    def _build_messages(self, system_prompt: str, user_content: str) -> list[dict[str, str]]:
+        if self.memory is None:
+            return [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ]
+
+        # Memory history is appended after the fresh system prompt so tool
+        # descriptions and safety rules are always current. The new user
+        # request is added last and persisted only after the Agent responds.
+        messages = self.memory.to_llm_messages(system_message=system_prompt)
+        messages.append({"role": "user", "content": user_content})
+        return messages
+
+    def _remember_turn(self, user_content: str, assistant_content: str, tool_result: ToolResult | None = None) -> None:
+        if self.memory is None:
+            return
+        self.memory.add_user_message(user_content)
+        if tool_result is not None:
+            self.memory.add_tool_message(json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str))
+        self.memory.add_assistant_message(assistant_content)
 
     def _build_user_content(self, request: AgentRequest) -> str:
         if request.project_path:
@@ -118,3 +144,17 @@ class AgentExecutor:
             ]
         return []
 
+    def _extract_patch_suggestions(self, tool_result: ToolResult) -> list[PatchSuggestion]:
+        if tool_result.error or not isinstance(tool_result.result, dict):
+            return []
+
+        raw_suggestions = tool_result.result.get("patch_suggestions", [])
+        suggestions: list[PatchSuggestion] = []
+        for item in raw_suggestions:
+            if isinstance(item, PatchSuggestion):
+                suggestions.append(item)
+            elif isinstance(item, dict):
+                # Patch suggestions remain advisory data. The executor only
+                # validates and forwards them; it never applies the diff.
+                suggestions.append(PatchSuggestion.model_validate(item))
+        return suggestions

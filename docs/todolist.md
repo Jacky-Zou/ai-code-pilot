@@ -83,7 +83,7 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 | P5-T02 | Implement log analyzer | Add `analyze_log(log_text)` tool | `backend/app/tools/*` | Tool tests pass | DONE ✅ |
 | P5-T03 | Implement safe shell tool | Add restricted `run_command(command, cwd)` | `backend/app/tools/shell_tools.py` | Shell safety tests pass | DONE ✅ |
 | P5-T04 | Implement patch generation | Generate diff suggestions without auto-editing | `backend/app/agent/*` | Patch output tests pass | DONE ✅ |
-| P5-T05 | Connect advanced tools | Register memory, log, shell, patch capabilities in Agent | `backend/app/tools/registry.py`, `backend/app/agent/*` | Agent tests pass | TODO |
+| P5-T05 | Connect advanced tools | Register memory, log, shell, patch capabilities in Agent | `backend/app/tools/registry.py`, `backend/app/agent/*` | Agent tests pass | DONE ✅ |
 | P5-T06 | Update security docs | Document advanced tool security model | `docs/security.md`, `docs/agent-design.md`, `README.md`, `docs/todolist.md` | Docs updated | TODO |
 | P5-T07 | Commit Phase 5 | Commit validated advanced capabilities | repository | `git log --oneline -1` shows Phase 5 commit | TODO |
 
