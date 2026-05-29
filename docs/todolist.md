@@ -71,7 +71,7 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 | P4-T04 | Implement chat page | Build agent chat workflow | `frontend/app/*` | Manual browser test | DONE ✅ |
 | P4-T05 | Implement project index page | Let user index a project path | `frontend/app/*` | Manual browser test | DONE ✅ |
 | P4-T06 | Implement ToolCallTimeline | Display tool call sequence and results | `frontend/components/ToolCallTimeline.tsx` | Component renders sample data | DONE ✅ |
-| P4-T07 | Implement CodeReference | Display file paths, lines, snippets, explanations | `frontend/components/CodeReference.tsx` | Component renders sample data | TODO |
+| P4-T07 | Implement CodeReference | Display file paths, lines, snippets, explanations | `frontend/components/CodeReference.tsx` | Component renders sample data | DONE ✅ |
 | P4-T08 | Update frontend docs | Document frontend usage | `README.md`, `docs/user-guide.md`, `docs/todolist.md` | Docs updated | TODO |
 | P4-T09 | Commit Phase 4 | Commit validated web UI | repository | `git log --oneline -1` shows Phase 4 commit | TODO |
 

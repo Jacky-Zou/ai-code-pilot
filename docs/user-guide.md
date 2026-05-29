@@ -13,13 +13,17 @@ Phase 3 provides a FastAPI backend:
 5. Ask codebase questions through `/api/chat`.
 6. Search indexed code chunks through `/api/projects/search`.
 
-## Planned Web Workflow 🖥️
+## Current Web Workflow 🖥️
 
-1. Select model provider and model.
-2. Enter a project path.
-3. Index the project.
-4. Ask codebase questions.
-5. Review tool calls and referenced code snippets.
+Phase 4 now provides an interactive Next.js workspace:
+
+1. Start the frontend with `npm run dev` in `frontend`.
+2. Open `http://127.0.0.1:3000`.
+3. Choose OpenAI or DeepSeek and select a model.
+4. Enter a project path and index it.
+5. Ask codebase questions in the Agent chat panel.
+6. Review the latest tool call timeline.
+7. Review code references returned by the Agent.
 
 ## Example Questions 💬
 

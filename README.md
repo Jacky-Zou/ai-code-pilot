@@ -180,6 +180,31 @@ Example chat request:
 
 API requests can override the default provider/model per call. Full endpoint schemas, response examples, and error codes are documented in [API](docs/api.md).
 
+## Web UI Progress 🖥️
+
+Phase 4 currently provides a Next.js workspace with:
+
+- OpenAI / DeepSeek provider and model selection.
+- Typed API client for health, chat, project indexing, and project search.
+- Agent chat workflow connected to `/api/chat`.
+- Project indexing workflow connected to `/api/projects/index`.
+- Tool call timeline for latest Agent responses.
+- Dedicated code reference panel for paths, line numbers, snippets, and scores.
+
+Run the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:3000
+```
+
 ## Phase Validation ✅
 
 At the end of each phase, AICodePilot runs a full project sanity check before moving forward:

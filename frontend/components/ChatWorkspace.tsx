@@ -3,14 +3,12 @@
 import {
   AlertCircle,
   Bot,
-  Braces,
   CheckCircle2,
   Code2,
   Database,
   FolderSearch,
   Loader2,
   Play,
-  Search,
   Send
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
@@ -22,6 +20,7 @@ import {
   sendChat
 } from "@/lib/api";
 import { ProviderSelector, type ProviderSelection } from "@/components/ProviderSelector";
+import { CodeReference } from "@/components/CodeReference";
 import { ToolCallTimeline } from "@/components/ToolCallTimeline";
 
 type ChatMessage = {
@@ -325,30 +324,7 @@ export function ChatWorkspace() {
 
         <aside className="space-y-4">
           <ToolCallTimeline toolCalls={latestResponse?.tool_calls ?? []} />
-
-          <section className="rounded-lg border border-border bg-panel p-4 shadow-soft">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <Search className="h-4 w-4 text-accent" aria-hidden="true" />
-              Code References
-            </div>
-            <div className="space-y-3">
-              {(latestResponse?.references ?? []).map((reference, index) => (
-                <div className="rounded-md border border-border p-3" key={`${reference.file_path}-${index}`}>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                    <Braces className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-                    <span className="min-w-0 truncate">
-                      {reference.file_path}
-                      {reference.line_number ? `:${reference.line_number}` : ""}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted">{reference.snippet ?? "Referenced by Agent"}</p>
-                </div>
-              ))}
-              {!latestResponse?.references.length ? (
-                <p className="text-sm text-muted">No references yet.</p>
-              ) : null}
-            </div>
-          </section>
+          <CodeReference references={latestResponse?.references ?? []} />
         </aside>
       </section>
     </main>
