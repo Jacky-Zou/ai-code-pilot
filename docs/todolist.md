@@ -73,7 +73,7 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 | P4-T06 | Implement ToolCallTimeline | Display tool call sequence and results | `frontend/components/ToolCallTimeline.tsx` | Component renders sample data | DONE ✅ |
 | P4-T07 | Implement CodeReference | Display file paths, lines, snippets, explanations | `frontend/components/CodeReference.tsx` | Component renders sample data | DONE ✅ |
 | P4-T08 | Update frontend docs | Document frontend usage | `README.md`, `docs/user-guide.md`, `docs/todolist.md` | Docs updated | DONE ✅ |
-| P4-T09 | Commit Phase 4 | Commit validated web UI | repository | `git log --oneline -1` shows Phase 4 commit | TODO |
+| P4-T09 | Commit Phase 4 | Commit validated web UI | repository | `git log --oneline -1` shows Phase 4 commit | DONE ✅ |
 
 ## Phase 5: Advanced Agent Capabilities
 

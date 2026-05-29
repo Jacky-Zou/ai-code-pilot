@@ -42,3 +42,11 @@ Phase 4 verifies the interactive web workspace:
 - `npm run build` confirms the Next.js app compiles for production.
 - A browser smoke test confirms the dashboard renders at `http://127.0.0.1:3000`.
 - The UI flow covers provider/model selection, project indexing, Agent chat, tool call timeline, and code references.
+
+Completed Phase 4 validation includes:
+
+- Full backend regression test with a temporary Chroma vector store path: `86 passed`.
+- Frontend `npm run typecheck`.
+- Frontend `npm run lint`.
+- Frontend `npm run build`.
+- HTTP smoke test against a local Next.js server: `STATUS=200`.

@@ -251,6 +251,8 @@ At the end of each phase, AICodePilot runs a full project sanity check before mo
 
 Phase 3 validation confirms the FastAPI backend exposes `/api/health`, `/api/chat`, `/api/projects/index`, and `/api/projects/search` without breaking the Mini Agent or RAG layers.
 
+Phase 4 validation confirms the Next.js frontend builds successfully, renders over HTTP, and keeps the provider selector, project indexing, Agent chat, tool-call timeline, and code reference workflow aligned with the backend APIs.
+
 ## Documentation 📚
 
 - [Architecture](docs/architecture.md)
