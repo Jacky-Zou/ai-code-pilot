@@ -68,6 +68,21 @@ Services:
 | backend | `http://localhost:8000` | FastAPI Agent and RAG API |
 | frontend | `http://localhost:3000` | Next.js Web UI |
 
+### Inspecting Local Projects from Docker
+
+The backend container can only inspect files that are mounted into it. Configure a read-only
+workspace mount in `.env` before starting Compose:
+
+```env
+PROJECTS_HOST_ROOT=D:/code/my_projects
+PROJECTS_CONTAINER_ROOT=/workspace
+NEXT_PUBLIC_DEFAULT_PROJECT_PATH=/workspace
+```
+
+Compose mounts `PROJECTS_HOST_ROOT` at `PROJECTS_CONTAINER_ROOT`. The backend also accepts a
+host path under that root and maps it to the container path automatically. For example,
+`D:/code/my_projects/AI_Projects/AICodePilot` maps to `/workspace/AI_Projects/AICodePilot`.
+
 Stop the stack with:
 
 ```bash

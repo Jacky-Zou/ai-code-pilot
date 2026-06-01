@@ -194,6 +194,96 @@ def test_executor_reprompts_when_final_answer_only_contains_thinking(tmp_path: P
     assert len(provider.calls) == 3
 
 
+def test_executor_replaces_protocol_leak_with_tool_result_summary(tmp_path: Path) -> None:
+    (tmp_path / "agent.py").write_text("class AgentExecutor:\n    pass\n", encoding="utf-8")
+    provider = FakeProvider(
+        [
+            '{"type":"read_file","arguments":{"file_path":"agent.py"}}',
+            """```json
+{"type":"read_file","arguments":{"file_path":"agent.py","max_bytes":50000}}
+```""",
+            """```json
+{"type":"read_file","arguments":{"file_path":"agent.py","max_bytes":50000}}
+```""",
+            """```json
+{"type":"read_file","arguments":{"file_path":"agent.py","max_bytes":50000}}
+```""",
+            """```json
+{"type":"read_file","arguments":{"file_path":"agent.py","max_bytes":50000}}
+```""",
+        ]
+    )
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+
+    response = executor.run(AgentRequest(message="where is the agent flow", project_path=str(tmp_path)))
+
+    assert "```json" not in response.answer
+    assert '"type":"read_file"' not in response.answer
+    assert "Read `agent.py`" in response.answer
+    assert response.tool_calls[0].name == "read_file"
+
+
+def test_executor_uses_chinese_fallback_for_chinese_requests(tmp_path: Path) -> None:
+    agent_file = tmp_path / "backend" / "app" / "agent" / "agent.py"
+    agent_file.parent.mkdir(parents=True)
+    agent_file.write_text("class AICodePilotAgent:\n    pass\n", encoding="utf-8")
+    provider = FakeProvider(
+        [
+            '{"type":"read_file","arguments":{"file_path":"backend/app/agent/agent.py"}}',
+            '{"type":"read_file","arguments":{"file_path":"backend/app/agent/agent.py"}}',
+            '{"type":"read_file","arguments":{"file_path":"backend/app/agent/agent.py"}}',
+            '{"type":"read_file","arguments":{"file_path":"backend/app/agent/agent.py"}}',
+            '{"type":"read_file","arguments":{"file_path":"backend/app/agent/agent.py"}}',
+        ]
+    )
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+
+    response = executor.run(AgentRequest(message="请分析 Agent 主流程在哪里", project_path=str(tmp_path)))
+
+    assert "Agent 门面入口" in response.answer
+    assert "```json" not in response.answer
+    assert '"type"' not in response.answer
+
+
+def test_executor_replaces_english_answer_for_chinese_request(tmp_path: Path) -> None:
+    (tmp_path / "backend" / "app" / "agent").mkdir(parents=True)
+    (tmp_path / "backend" / "app" / "agent" / "executor.py").write_text(
+        "class AgentExecutor:\n    pass\n",
+        encoding="utf-8",
+    )
+    provider = FakeProvider(
+        [
+            '{"type":"read_file","arguments":{"file_path":"backend/app/agent/executor.py"}}',
+            '{"type":"final","answer":"The agent flow is implemented in executor.py."}',
+        ]
+    )
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+
+    response = executor.run(AgentRequest(message="请分析 Agent 主流程在哪里", project_path=str(tmp_path)))
+
+    assert "核心执行闭环" in response.answer
+    assert "The agent flow" not in response.answer
+
+
+def test_executor_requests_final_summary_after_tool_budget(tmp_path: Path) -> None:
+    for index in range(1, 6):
+        (tmp_path / f"file_{index}.py").write_text(f"# file {index}\n", encoding="utf-8")
+
+    provider = FakeProvider(
+        [f'{{"type":"read_file","arguments":{{"file_path":"file_{index}.py"}}}}' for index in range(1, 6)]
+        + ['{"type":"final","answer":"Agent flow summary after collecting enough context."}']
+    )
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+
+    response = executor.run(AgentRequest(message="summarize agent flow", project_path=str(tmp_path)))
+
+    assert response.answer == "Agent flow summary after collecting enough context."
+    assert len(response.tool_calls) == 5
+    assert len(provider.calls) == 6
+    assert [message["role"] for message in provider.calls[-1]] == ["system", "user"]
+    assert '"type":"read_file"' not in provider.calls[-1][-1]["content"]
+
+
 def test_executor_executes_xml_tool_call_payload(tmp_path: Path) -> None:
     (tmp_path / "main.py").write_text("from agent.agent import AICodePilotAgent\n", encoding="utf-8")
     provider = FakeProvider(

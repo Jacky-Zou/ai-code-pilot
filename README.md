@@ -147,6 +147,21 @@ docker compose up --build
 
 Backend runs on `http://localhost:8000`; frontend runs on `http://localhost:3000`.
 
+### Docker project paths
+
+The backend can only inspect paths that are visible inside its container. Compose mounts
+`PROJECTS_HOST_ROOT` into `PROJECTS_CONTAINER_ROOT` as read-only project workspace storage:
+
+```env
+PROJECTS_HOST_ROOT=D:/code/my_projects
+PROJECTS_CONTAINER_ROOT=/workspace
+NEXT_PUBLIC_DEFAULT_PROJECT_PATH=/workspace
+```
+
+With that mapping, a host path such as `D:/code/my_projects/demo-api` is automatically
+resolved by the backend to `/workspace/demo-api`. You may also type the container path
+directly in the Web UI.
+
 ## Mini Agent CLI 🤖
 
 Phase 1 provides a command-line Mini Agent with:

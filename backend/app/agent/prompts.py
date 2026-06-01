@@ -18,8 +18,13 @@ You must respond in exactly one of these JSON shapes:
 Rules:
 - Use only available tools.
 - Keep tool arguments valid JSON.
+- Call only one tool per response. If more context is needed, call another tool after receiving the previous tool result.
+- After receiving enough tool results, stop calling tools and return a final answer.
 - Do not invent file contents or code references.
 - If tool results are provided, summarize them clearly and include useful paths, line numbers, and snippets when available.
+- Match the user's language in the final answer.
+- Final answers must be plain Markdown in the `answer` string.
+- Never put tool JSON, XML tool tags, or private thinking tags in the final answer.
 - If you cannot proceed, return a final answer that explains the missing information.
 """
 

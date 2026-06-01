@@ -30,6 +30,8 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
         "EMBEDDING_MODEL",
         "VECTOR_STORE_PATH",
         "VECTOR_STORE_BACKEND",
+        "PROJECTS_HOST_ROOT",
+        "PROJECTS_CONTAINER_ROOT",
         "CORS_ALLOWED_ORIGINS",
     ):
         monkeypatch.delenv(key, raising=False)
@@ -45,6 +47,8 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.vector_store_path == Path("data/vector_store")
     assert settings.vector_store_backend == "chroma"
+    assert settings.projects_host_root is None
+    assert settings.projects_container_root == "/workspace"
     assert settings.cors_allowed_origin_list == ["http://localhost:3000", "http://127.0.0.1:3000"]
 
 
@@ -58,6 +62,8 @@ def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("EMBEDDING_PROVIDER", "LOCAL")
     monkeypatch.setenv("VECTOR_STORE_PATH", "./tmp/vectors")
     monkeypatch.setenv("VECTOR_STORE_BACKEND", "JSON")
+    monkeypatch.setenv("PROJECTS_HOST_ROOT", "D:/code/projects/")
+    monkeypatch.setenv("PROJECTS_CONTAINER_ROOT", "/workspace/")
     monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000, https://example.com/")
 
     settings = Settings(_env_file=None)
@@ -71,6 +77,8 @@ def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.embedding_provider == "local"
     assert settings.vector_store_path == Path("tmp/vectors")
     assert settings.vector_store_backend == "json"
+    assert settings.projects_host_root == "D:/code/projects"
+    assert settings.projects_container_root == "/workspace"
     assert settings.cors_allowed_origin_list == ["http://localhost:3000", "https://example.com"]
 
 

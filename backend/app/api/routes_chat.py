@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from app.agent.agent import AICodePilotAgent
 from app.api.schemas import ChatRequest, ChatResponse
 from app.core.logger import get_logger
+from app.core.project_paths import normalize_project_path
 
 router = APIRouter(prefix="/api", tags=["chat"])
 logger = get_logger(__name__)
@@ -24,9 +25,10 @@ def chat(request: ChatRequest, agent: AICodePilotAgent = Depends(get_agent)) -> 
         request.model or "default",
         request.project_path is not None,
     )
+    project_path = normalize_project_path(request.project_path) if request.project_path else None
     response = agent.run(
         message=request.message,
-        project_path=request.project_path,
+        project_path=project_path,
         provider=request.provider,
         model=request.model,
     )

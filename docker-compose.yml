@@ -26,10 +26,13 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
       VECTOR_STORE_BACKEND: ${VECTOR_STORE_BACKEND:-chroma}
       VECTOR_STORE_PATH: /app/data/vector_store
+      PROJECTS_HOST_ROOT: ${PROJECTS_HOST_ROOT:-.}
+      PROJECTS_CONTAINER_ROOT: ${PROJECTS_CONTAINER_ROOT:-/workspace}
     ports:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+      - "${PROJECTS_HOST_ROOT:-.}:${PROJECTS_CONTAINER_ROOT:-/workspace}:ro"
     restart: unless-stopped
 
   frontend:
@@ -39,14 +42,14 @@ services:
         # The same mirror override pattern is available for Node.js images.
         NODE_IMAGE: ${NODE_IMAGE:-node:20-alpine}
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
-        NEXT_PUBLIC_DEFAULT_PROJECT_PATH: ${NEXT_PUBLIC_DEFAULT_PROJECT_PATH:-/app/app}
+        NEXT_PUBLIC_DEFAULT_PROJECT_PATH: ${NEXT_PUBLIC_DEFAULT_PROJECT_PATH:-/workspace}
     image: aicodepilot-frontend:local
     container_name: aicodepilot-frontend
     environment:
       # This value is read by browser-side Next.js code, so it must point at
       # the host-published backend port rather than Docker's internal DNS name.
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
-      NEXT_PUBLIC_DEFAULT_PROJECT_PATH: ${NEXT_PUBLIC_DEFAULT_PROJECT_PATH:-/app/app}
+      NEXT_PUBLIC_DEFAULT_PROJECT_PATH: ${NEXT_PUBLIC_DEFAULT_PROJECT_PATH:-/workspace}
     ports:
       - "3000:3000"
     depends_on:

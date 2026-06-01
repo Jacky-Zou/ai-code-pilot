@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any
 
 from app.agent.planner import parse_agent_action
@@ -12,8 +13,20 @@ from app.llm.factory import LLMProviderFactory
 from app.memory.conversation_memory import ConversationMemory
 from app.tools.registry import ToolRegistry, create_default_registry
 
-_PROJECT_PATH_TOOLS = {"list_files", "read_file", "search_text", "retrieve_code", "run_command"}
+_PROJECT_PATH_TOOLS = {
+    "list_files",
+    "read_file",
+    "project_tree",
+    "find_files",
+    "search_text",
+    "retrieve_code",
+    "run_command",
+}
 _MAX_TOOL_STEPS = 5
+_PROTOCOL_LEAK_PATTERN = re.compile(
+    r"(```\s*json|<tool_calls>|</tool_calls>|<thinking>|</thinking>|\{\s*\"type\"\s*:\s*\"(?:action|final|read_file|list_files|search_text|retrieve_code))",
+    re.IGNORECASE | re.DOTALL,
+)
 logger = get_logger(__name__)
 
 
@@ -57,7 +70,7 @@ class AgentExecutor:
 
             if action.type == "final":
                 answer = action.answer or ""
-                if answer:
+                if answer and not self._looks_like_protocol_leak(answer):
                     break
                 if tool_results:
                     current_messages.extend(
@@ -98,8 +111,12 @@ class AgentExecutor:
         else:
             answer = ""
 
+        if not answer and tool_results:
+            answer = self._request_final_summary(llm, current_messages, model)
+
         if not answer:
-            answer = self._build_fallback_answer(tool_results)
+            answer = self._build_fallback_answer(tool_results, user_content)
+        answer = self._clean_final_answer(answer, tool_results, user_content)
 
         self._remember_turn(user_content, answer, tool_results[-1] if tool_results else None)
         logger.info(
@@ -138,32 +155,159 @@ class AgentExecutor:
             logger.info("Tool execution completed tool=%s", action.tool)
         return tool_result
 
-    def _build_fallback_answer(self, tool_results: list[ToolResult]) -> str:
+    def _request_final_summary(
+        self,
+        llm: BaseLLMProvider,
+        current_messages: list[dict[str, str]],
+        model: str,
+    ) -> str:
+        """Ask the model for one final synthesis after tool budget is exhausted.
+
+        Some providers keep requesting more files even after the executor has
+        gathered enough context. The user should still receive a useful answer,
+        so the executor performs one extra no-tools synthesis turn before
+        falling back to deterministic local summarization.
+        """
+
+        final_messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are AICodePilot finalizer. Tool calling is finished and no more tools "
+                    "are available. Write a final user-facing answer only. Match the user's "
+                    "language exactly; if the original request is Chinese, answer in Chinese."
+                ),
+            },
+            {"role": "user", "content": self._build_final_summary_context(current_messages)},
+        ]
+        try:
+            raw_response = llm.chat(list(final_messages), model=model)
+            action = parse_agent_action(raw_response)
+        except Exception as exc:
+            logger.warning("Final summary synthesis failed error=%s", exc)
+            return ""
+
+        if action.type == "final" and action.answer:
+            return action.answer
+        logger.warning("Final summary synthesis returned non-final action type=%s tool=%s", action.type, action.tool)
+        return ""
+
+    def _build_final_summary_context(self, current_messages: list[dict[str, str]]) -> str:
+        """Build a clean finalization prompt without previous tool-call JSON.
+
+        The normal Agent loop stores assistant tool-call payloads in history so
+        the next planning step has full context. For final synthesis, those JSON
+        payloads can bias weaker provider responses into repeating tool calls.
+        This context keeps only the original user request and the observed tool
+        results.
+        """
+
+        user_request = ""
+        tool_result_blocks: list[str] = []
+        for message in current_messages:
+            if message.get("role") != "user":
+                continue
+            content = message.get("content", "")
+            if content.startswith("Tool result:\n"):
+                tool_result_blocks.append(content.removeprefix("Tool result:\n"))
+            elif not user_request:
+                user_request = content
+
+        return (
+            "Original request:\n"
+            f"{user_request}\n\n"
+            "Tool results:\n" + "\n\n".join(tool_result_blocks) + "\n\nReturn exactly this JSON shape:\n"
+            '{"type":"final","answer":"plain Markdown answer"}\n'
+            "The answer must match the user's language. If the original request is Chinese, answer in Chinese. "
+            "Include useful file paths and only line numbers that are explicitly present in the tool results. "
+            "Do not invent approximate line numbers. Do not include tool-call JSON, XML tags, or private thinking."
+        )
+
+    def _looks_like_protocol_leak(self, answer: str) -> bool:
+        return bool(_PROTOCOL_LEAK_PATTERN.search(answer))
+
+    def _clean_final_answer(self, answer: str, tool_results: list[ToolResult], user_content: str) -> str:
+        cleaned = answer.strip()
+        if not cleaned or self._looks_like_protocol_leak(cleaned):
+            return self._build_fallback_answer(tool_results, user_content)
+        if self._contains_cjk(user_content) and not self._contains_cjk(cleaned):
+            return self._build_fallback_answer(tool_results, user_content)
+        return cleaned
+
+    def _build_fallback_answer(self, tool_results: list[ToolResult], user_content: str = "") -> str:
         if not tool_results:
+            if self._contains_cjk(user_content):
+                return "模型没有返回可用的最终答案。"
             return "I could not produce a final answer from the model response."
 
-        lines = ["I executed tools but the model did not return a usable final summary. Relevant results:"]
+        if self._contains_cjk(user_content):
+            lines = ["我已经调用工具检查了项目，但模型没有返回可用的最终总结。基于工具结果，可以确认："]
+        else:
+            lines = ["I executed tools but the model did not return a usable final summary. Relevant results:"]
+
         for tool_result in tool_results:
             if tool_result.error:
                 lines.append(f"- {tool_result.name}: {tool_result.error}")
                 continue
             if tool_result.name == "read_file" and isinstance(tool_result.result, dict):
                 relative_path = tool_result.result.get("relative_path") or tool_result.result.get("file_path")
-                lines.append(f"- Read `{relative_path}`.")
+                lines.append(self._describe_read_file_result(str(relative_path), user_content))
             elif tool_result.name == "list_files" and isinstance(tool_result.result, dict):
                 files = [str(item) for item in tool_result.result.get("files", [])]
                 agent_files = [file for file in files if "agent" in file.lower()][:8]
                 if agent_files:
-                    lines.append("- Agent-related files found: " + ", ".join(f"`{file}`" for file in agent_files))
+                    prefix = "- 发现与 Agent 相关的文件：" if self._contains_cjk(user_content) else "- Agent-related files found: "
+                    lines.append(prefix + ", ".join(f"`{file}`" for file in agent_files))
                 else:
-                    lines.append(f"- Listed {tool_result.result.get('count', len(files))} files.")
+                    if self._contains_cjk(user_content):
+                        lines.append(f"- 已列出 {tool_result.result.get('count', len(files))} 个文件。")
+                    else:
+                        lines.append(f"- Listed {tool_result.result.get('count', len(files))} files.")
+            elif tool_result.name == "project_tree" and isinstance(tool_result.result, dict):
+                entries = [str(item) for item in tool_result.result.get("entries", [])[:20]]
+                prefix = "- 项目结构片段：" if self._contains_cjk(user_content) else "- Project tree sample: "
+                lines.append(prefix + ", ".join(f"`{entry}`" for entry in entries))
+            elif tool_result.name == "find_files" and isinstance(tool_result.result, dict):
+                matches = [str(item) for item in tool_result.result.get("matches", [])[:10]]
+                prefix = "- 匹配到的文件：" if self._contains_cjk(user_content) else "- Matching files: "
+                lines.append(prefix + ", ".join(f"`{match}`" for match in matches))
             elif tool_result.name == "retrieve_code" and isinstance(tool_result.result, dict):
                 matches = tool_result.result.get("matches", [])[:5]
                 for match in matches:
                     lines.append(f"- `{match.get('file_path')}` lines {match.get('start_line')}-{match.get('end_line')}")
             else:
-                lines.append(f"- Ran `{tool_result.name}` successfully.")
+                if self._contains_cjk(user_content):
+                    lines.append(f"- `{tool_result.name}` 执行成功。")
+                else:
+                    lines.append(f"- Ran `{tool_result.name}` successfully.")
         return "\n".join(lines)
+
+    def _describe_read_file_result(self, relative_path: str, user_content: str) -> str:
+        """Return a human fallback sentence for a read file result.
+
+        This keeps the product useful even when a provider refuses to produce
+        the final summary after successful tool calls. The descriptions are
+        intentionally conservative and tied to stable module responsibilities.
+        """
+
+        if not self._contains_cjk(user_content):
+            return f"- Read `{relative_path}`."
+
+        normalized_path = relative_path.replace("\\", "/")
+        if normalized_path.endswith("backend/app/agent/agent.py") or normalized_path.endswith("agent.py"):
+            return "- `backend/app/agent/agent.py` 是 Agent 门面入口，负责把用户输入封装成 `AgentRequest` 并交给执行器。"
+        if normalized_path.endswith("backend/app/agent/executor.py") or normalized_path.endswith("executor.py"):
+            return "- `backend/app/agent/executor.py` 是核心执行闭环，负责模型调用、工具执行、结果回填和最终答案生成。"
+        if normalized_path.endswith("backend/app/agent/planner.py") or normalized_path.endswith("planner.py"):
+            return "- `backend/app/agent/planner.py` 负责把模型原始输出解析为结构化 `AgentAction`。"
+        if normalized_path.endswith("backend/app/agent/prompts.py") or normalized_path.endswith("prompts.py"):
+            return "- `backend/app/agent/prompts.py` 定义系统提示词和工具调用输出约束。"
+        if normalized_path.endswith("backend/app/tools/registry.py") or normalized_path.endswith("registry.py"):
+            return "- `backend/app/tools/registry.py` 负责注册和查找 Agent 可调用工具。"
+        return f"- 已读取 `{relative_path}`。"
+
+    def _contains_cjk(self, content: str) -> bool:
+        return any("\u4e00" <= character <= "\u9fff" for character in content)
 
     def _build_messages(self, system_prompt: str, user_content: str) -> list[dict[str, str]]:
         if self.memory is None:

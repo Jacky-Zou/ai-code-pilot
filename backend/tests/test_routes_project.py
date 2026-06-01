@@ -36,14 +36,14 @@ def create_test_client(fake_retriever: FakeRetriever) -> TestClient:
     return TestClient(app)
 
 
-def test_project_index_route_calls_retriever() -> None:
+def test_project_index_route_calls_retriever(tmp_path: Path) -> None:
     fake_retriever = FakeRetriever()
     client = create_test_client(fake_retriever)
 
-    response = client.post("/api/projects/index", json={"project_path": "/tmp/project"})
+    response = client.post("/api/projects/index", json={"project_path": str(tmp_path)})
 
     assert response.status_code == 200
-    assert fake_retriever.index_calls == ["/tmp/project"]
+    assert fake_retriever.index_calls == [str(tmp_path.resolve())]
     assert response.json() == {
         "status": "success",
         "indexed_files": 3,

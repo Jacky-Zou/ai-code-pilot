@@ -8,6 +8,8 @@ from app.core.exceptions import AICodePilotError
 _TOOL_ACTION_TYPES = {
     "list_files",
     "read_file",
+    "project_tree",
+    "find_files",
     "search_text",
     "retrieve_code",
     "analyze_log",
@@ -20,7 +22,9 @@ _LOOSE_FINAL_PATTERN = re.compile(
     re.DOTALL,
 )
 _XML_TOOL_PATTERN = re.compile(
-    r"<(?P<tool>list_files|read_file|search_text|retrieve_code|analyze_log|run_command)>\s*" r"(?P<body>.*?)" r"</(?P=tool)>",
+    r"<(?P<tool>list_files|read_file|project_tree|find_files|search_text|retrieve_code|analyze_log|run_command)>\s*"
+    r"(?P<body>.*?)"
+    r"</(?P=tool)>",
     re.DOTALL | re.IGNORECASE,
 )
 _XML_FIELD_PATTERN = re.compile(r"<(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)>(?P<value>.*?)</(?P=name)>", re.DOTALL)

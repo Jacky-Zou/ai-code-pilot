@@ -54,7 +54,7 @@ def create_test_client(fake_agent: FakeAgent) -> TestClient:
     return TestClient(app)
 
 
-def test_chat_route_passes_request_to_agent() -> None:
+def test_chat_route_passes_request_to_agent(tmp_path) -> None:
     fake_agent = FakeAgent()
     client = create_test_client(fake_agent)
 
@@ -62,7 +62,7 @@ def test_chat_route_passes_request_to_agent() -> None:
         "/api/chat",
         json={
             "message": "Where is chat implemented?",
-            "project_path": "/tmp/project",
+            "project_path": str(tmp_path),
             "provider": "deepseek",
             "model": "deepseek-v4-pro",
         },
@@ -72,7 +72,7 @@ def test_chat_route_passes_request_to_agent() -> None:
     assert fake_agent.calls == [
         {
             "message": "Where is chat implemented?",
-            "project_path": "/tmp/project",
+            "project_path": str(tmp_path.resolve()),
             "provider": "deepseek",
             "model": "deepseek-v4-pro",
         }

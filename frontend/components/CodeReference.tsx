@@ -27,10 +27,14 @@ export function CodeReference({ references }: CodeReferenceProps) {
     <section className="rounded-lg border border-border bg-panel p-4 shadow-soft">
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
         <Search className="h-4 w-4 text-accent" aria-hidden="true" />
-        Code References
+        Code Evidence
       </div>
 
-      {references.length === 0 ? <p className="text-sm text-muted">No references yet.</p> : null}
+      <p className="mb-3 text-xs leading-5 text-muted">
+        Files and snippets the Agent used as evidence for the latest answer.
+      </p>
+
+      {references.length === 0 ? <p className="text-sm text-muted">No code evidence yet.</p> : null}
 
       <div className="space-y-3">
         {references.map((reference, index) => {

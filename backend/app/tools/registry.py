@@ -1,7 +1,7 @@
 from app.core.exceptions import ToolError
 from app.core.logger import get_logger
 from app.tools.base import BaseTool
-from app.tools.file_tools import ListFilesTool, ReadFileTool
+from app.tools.file_tools import FindFilesTool, ListFilesTool, ProjectTreeTool, ReadFileTool
 from app.tools.log_tools import AnalyzeLogTool
 from app.tools.rag_tools import RetrieveCodeTool
 from app.tools.search_tools import SearchTextTool
@@ -37,6 +37,8 @@ def create_default_registry() -> ToolRegistry:
     registry = ToolRegistry()
     registry.register(ListFilesTool())
     registry.register(ReadFileTool())
+    registry.register(ProjectTreeTool())
+    registry.register(FindFilesTool())
     registry.register(SearchTextTool())
     registry.register(RetrieveCodeTool())
     registry.register(AnalyzeLogTool())

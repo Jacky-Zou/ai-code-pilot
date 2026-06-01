@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from app.core.exceptions import ToolError
 from app.tools.base import BaseTool
-from app.tools.file_tools import ListFilesTool, ReadFileTool
+from app.tools.file_tools import FindFilesTool, ListFilesTool, ProjectTreeTool, ReadFileTool
 from app.tools.log_tools import AnalyzeLogTool
 from app.tools.rag_tools import RetrieveCodeTool
 from app.tools.registry import ToolRegistry, create_default_registry
@@ -64,6 +64,8 @@ def test_default_registry_contains_agent_tools() -> None:
 
     assert isinstance(registry.get("list_files"), ListFilesTool)
     assert isinstance(registry.get("read_file"), ReadFileTool)
+    assert isinstance(registry.get("project_tree"), ProjectTreeTool)
+    assert isinstance(registry.get("find_files"), FindFilesTool)
     assert isinstance(registry.get("search_text"), SearchTextTool)
     assert isinstance(registry.get("retrieve_code"), RetrieveCodeTool)
     assert isinstance(registry.get("analyze_log"), AnalyzeLogTool)

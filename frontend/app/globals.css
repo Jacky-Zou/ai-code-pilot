@@ -37,3 +37,20 @@ select {
 button {
   cursor: pointer;
 }
+
+* {
+  scrollbar-color: #a8b3c7 transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #a8b3c7;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}

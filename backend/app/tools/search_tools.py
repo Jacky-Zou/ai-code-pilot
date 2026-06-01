@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.core.exceptions import ToolError
 from app.tools.base import BaseTool
-from app.tools.file_tools import IGNORED_DIRS, _looks_binary, _resolve_existing_dir
+from app.tools.file_tools import _looks_binary, _resolve_existing_dir, iter_project_paths
 
 
 class SearchTextArgs(BaseModel):
@@ -25,12 +25,9 @@ class SearchTextTool(BaseTool):
         root = _resolve_existing_dir(args.project_path)
         matches: list[dict[str, Any]] = []
 
-        for path in root.rglob("*"):
+        for path in iter_project_paths(root):
             if len(matches) >= args.max_results:
                 break
-            relative_parts = path.relative_to(root).parts
-            if any(part in IGNORED_DIRS for part in relative_parts):
-                continue
             if not path.is_file():
                 continue
             if _looks_binary(path):

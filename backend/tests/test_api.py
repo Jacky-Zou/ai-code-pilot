@@ -88,7 +88,7 @@ def test_health_endpoint_returns_service_status() -> None:
     assert response.json() == {"status": "ok", "service": "AICodePilot"}
 
 
-def test_chat_endpoint_returns_agent_answer_and_metadata() -> None:
+def test_chat_endpoint_returns_agent_answer_and_metadata(tmp_path: Path) -> None:
     fake_agent = FakeAgent()
     client = create_test_client(fake_agent, FakeRetriever())
 
@@ -96,7 +96,7 @@ def test_chat_endpoint_returns_agent_answer_and_metadata() -> None:
         "/api/chat",
         json={
             "message": "Where is the API router?",
-            "project_path": "/tmp/project",
+            "project_path": str(tmp_path),
             "provider": "deepseek",
             "model": "deepseek-chat",
         },
@@ -106,7 +106,7 @@ def test_chat_endpoint_returns_agent_answer_and_metadata() -> None:
     assert fake_agent.calls == [
         {
             "message": "Where is the API router?",
-            "project_path": "/tmp/project",
+            "project_path": str(tmp_path.resolve()),
             "provider": "deepseek",
             "model": "deepseek-chat",
         }
@@ -119,14 +119,14 @@ def test_chat_endpoint_returns_agent_answer_and_metadata() -> None:
     assert data["references"][0]["file_path"] == "backend/app/api/routes_chat.py"
 
 
-def test_project_index_endpoint_returns_indexing_stats() -> None:
+def test_project_index_endpoint_returns_indexing_stats(tmp_path: Path) -> None:
     fake_retriever = FakeRetriever()
     client = create_test_client(FakeAgent(), fake_retriever)
 
-    response = client.post("/api/projects/index", json={"project_path": "/tmp/project"})
+    response = client.post("/api/projects/index", json={"project_path": str(tmp_path)})
 
     assert response.status_code == 200
-    assert fake_retriever.index_calls == ["/tmp/project"]
+    assert fake_retriever.index_calls == [str(tmp_path.resolve())]
     assert response.json() == {
         "status": "success",
         "indexed_files": 2,

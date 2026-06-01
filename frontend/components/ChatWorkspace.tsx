@@ -9,15 +9,17 @@ import {
   FolderSearch,
   Loader2,
   Play,
-  Send
+  Send,
+  Server,
 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   ApiClientError,
   type ChatResponse,
   type ProjectIndexResponse,
+  getHealth,
   indexProject,
-  sendChat
+  sendChat,
 } from "@/lib/api";
 import { ProviderSelector, type ProviderSelection } from "@/components/ProviderSelector";
 import { CodeReference } from "@/components/CodeReference";
@@ -65,7 +67,7 @@ const demoResponse: ChatResponse = {
   ]
 };
 
-const DEFAULT_PROJECT_PATH = process.env.NEXT_PUBLIC_DEFAULT_PROJECT_PATH ?? "/app/app";
+const DEFAULT_PROJECT_PATH = process.env.NEXT_PUBLIC_DEFAULT_PROJECT_PATH ?? "/workspace";
 
 const initialMessages: ChatMessage[] = [
   {
@@ -83,7 +85,10 @@ const initialMessages: ChatMessage[] = [
 
 function formatApiError(error: unknown): string {
   if (error instanceof ApiClientError) {
-    return error.body?.detail ? String(error.body.detail) : error.message;
+    if (typeof error.body?.detail === "string") {
+      return error.body.detail;
+    }
+    return error.body?.detail ? JSON.stringify(error.body.detail) : error.message;
   }
   if (error instanceof Error) {
     return error.message;
@@ -104,6 +109,8 @@ export function ChatWorkspace() {
   const [indexStats, setIndexStats] = useState<ProjectIndexResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [indexError, setIndexError] = useState<string | null>(null);
+  const [backendReady, setBackendReady] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // The right rail should always reflect the newest Agent response, not a stale demo result.
   // Walking from the end keeps this independent from whether the user sends one or many messages.
@@ -111,6 +118,19 @@ export function ChatWorkspace() {
     () => [...messages].reverse().find((item) => item.response)?.response ?? null,
     [messages]
   );
+
+  useEffect(() => {
+    getHealth()
+      .then(() => setBackendReady(true))
+      .catch(() => setBackendReady(false));
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth"
+    });
+  }, [messages, isSending, error]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -196,8 +216,12 @@ export function ChatWorkspace() {
             </div>
           </div>
           <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm text-muted">
-            <CheckCircle2 className="h-4 w-4 text-accent" aria-hidden="true" />
-            Backend API ready
+            {backendReady ? (
+              <CheckCircle2 className="h-4 w-4 text-accent" aria-hidden="true" />
+            ) : (
+              <Server className="h-4 w-4 text-warning" aria-hidden="true" />
+            )}
+            {backendReady ? "Backend API ready" : "Backend API unavailable"}
           </div>
         </div>
       </header>
@@ -209,7 +233,7 @@ export function ChatWorkspace() {
           <section className="rounded-lg border border-border bg-panel p-4 shadow-soft">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
               <FolderSearch className="h-4 w-4 text-accent" aria-hidden="true" />
-              Project
+              Codebase
             </div>
             <input
               className="mb-3 h-10 w-full rounded-md border border-border bg-white px-3 text-sm"
@@ -217,6 +241,10 @@ export function ChatWorkspace() {
               value={projectPath}
               aria-label="Project path"
             />
+            <p className="mb-3 text-xs leading-5 text-muted">
+              Use a backend-visible path. In Docker, `/app/app` is this backend and `/workspace/...`
+              is for mounted local projects.
+            </p>
             <button
               className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-accent px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-[#8ec5bd]"
               disabled={isIndexing || !projectPath.trim()}
@@ -228,7 +256,7 @@ export function ChatWorkspace() {
               ) : (
                 <Database className="h-4 w-4" aria-hidden="true" />
               )}
-              {isIndexing ? "Indexing" : "Index Project"}
+              {isIndexing ? "Indexing" : "Index codebase"}
             </button>
             {indexStats ? (
               <div className="mt-3 rounded-md border border-[#b7dfd8] bg-[#effaf8] p-3 text-sm">
@@ -250,7 +278,7 @@ export function ChatWorkspace() {
           </section>
         </aside>
 
-        <section className="flex min-h-[620px] flex-col rounded-lg border border-border bg-panel shadow-soft">
+        <section className="flex h-[calc(100vh-128px)] min-h-[620px] flex-col rounded-lg border border-border bg-panel shadow-soft">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div className="flex items-center gap-2 font-semibold">
               <Code2 className="h-5 w-5 text-primary" aria-hidden="true" />
@@ -266,13 +294,13 @@ export function ChatWorkspace() {
             </button>
           </div>
 
-          <div className="flex-1 space-y-4 overflow-auto p-5">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5" ref={scrollRef}>
             {messages.map((item) => (
               <div
                 className={
                   item.role === "user"
-                    ? "max-w-[78%] rounded-lg border border-border bg-background p-4"
-                    : "ml-auto max-w-[82%] rounded-lg bg-[#edf4ff] p-4"
+                    ? "ml-auto max-w-[78%] rounded-lg bg-primary p-4 text-white"
+                    : "max-w-[82%] rounded-lg border border-border bg-background p-4"
                 }
                 key={item.id}
               >
@@ -285,7 +313,7 @@ export function ChatWorkspace() {
               </div>
             ))}
             {isSending ? (
-              <div className="ml-auto flex max-w-[82%] items-center gap-2 rounded-lg bg-[#edf4ff] p-4 text-sm text-muted">
+              <div className="flex max-w-[82%] items-center gap-2 rounded-lg border border-border bg-background p-4 text-sm text-muted">
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 Thinking
               </div>

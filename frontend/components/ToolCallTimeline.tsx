@@ -5,22 +5,59 @@ export interface ToolCallTimelineProps {
   toolCalls: ToolResult[];
 }
 
-function previewValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "None";
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function formatArguments(toolCall: ToolResult): string {
+  const args = asRecord(toolCall.arguments);
+  if (toolCall.name === "read_file") {
+    return `Read ${String(args.file_path ?? "selected file")}`;
   }
-  if (typeof value === "string") {
-    return value;
+  if (toolCall.name === "search_text") {
+    return `Search "${String(args.keyword ?? "")}"`;
+  }
+  if (toolCall.name === "retrieve_code") {
+    return `Retrieve "${String(args.query ?? "")}"`;
+  }
+  if (toolCall.name === "project_tree") {
+    return `Show tree depth ${String(args.max_depth ?? 3)}`;
+  }
+  if (toolCall.name === "find_files") {
+    return `Find files matching "${String(args.pattern ?? "")}"`;
+  }
+  if (toolCall.name === "list_files") {
+    return "List project files";
+  }
+  return "Run development tool";
+}
+
+function formatResult(toolCall: ToolResult): string {
+  if (toolCall.error) {
+    return toolCall.error;
   }
 
-  // Tool arguments/results may be nested dictionaries from the backend.
-  // JSON.stringify gives the UI a stable, inspectable preview without coupling
-  // this component to every individual tool's response schema.
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "Unserializable value";
+  const result = asRecord(toolCall.result);
+  if (toolCall.name === "read_file") {
+    return `Loaded ${String(result.relative_path ?? result.file_path ?? "file")}`;
   }
+  if (toolCall.name === "search_text") {
+    return `${String(result.count ?? 0)} matches`;
+  }
+  if (toolCall.name === "retrieve_code") {
+    const matches = Array.isArray(result.matches) ? result.matches.length : 0;
+    return `${matches} semantic snippets`;
+  }
+  if (toolCall.name === "project_tree") {
+    return `${String(result.count ?? 0)} tree entries`;
+  }
+  if (toolCall.name === "find_files") {
+    return `${String(result.count ?? 0)} files found`;
+  }
+  if (toolCall.name === "list_files") {
+    return `${String(result.count ?? 0)} files`;
+  }
+  return "Completed";
 }
 
 export function ToolCallTimeline({ toolCalls }: ToolCallTimelineProps) {
@@ -28,10 +65,14 @@ export function ToolCallTimeline({ toolCalls }: ToolCallTimelineProps) {
     <section className="rounded-lg border border-border bg-panel p-4 shadow-soft">
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
         <GitBranch className="h-4 w-4 text-primary" aria-hidden="true" />
-        Tool Calls
+        Agent Steps
       </div>
 
-      {toolCalls.length === 0 ? <p className="text-sm text-muted">No tool calls yet.</p> : null}
+      <p className="mb-3 text-xs leading-5 text-muted">
+        Tools the Agent used to inspect files, search code, or retrieve semantic context.
+      </p>
+
+      {toolCalls.length === 0 ? <p className="text-sm text-muted">No tool activity yet.</p> : null}
 
       <div className="space-y-3">
         {toolCalls.map((toolCall, index) => {
@@ -71,14 +112,12 @@ export function ToolCallTimeline({ toolCalls }: ToolCallTimelineProps) {
                     while full tool/result expansion can be added later if needed. */}
                 <dl className="space-y-2 text-xs text-muted">
                   <div>
-                    <dt className="font-medium text-foreground">Arguments</dt>
-                    <dd className="mt-1 truncate">{previewValue(toolCall.arguments)}</dd>
+                    <dt className="font-medium text-foreground">Action</dt>
+                    <dd className="mt-1">{formatArguments(toolCall)}</dd>
                   </div>
                   <div>
-                    <dt className="font-medium text-foreground">{hasError ? "Error" : "Result"}</dt>
-                    <dd className="mt-1 truncate">
-                      {hasError ? toolCall.error : previewValue(toolCall.result)}
-                    </dd>
+                    <dt className="font-medium text-foreground">{hasError ? "Problem" : "Outcome"}</dt>
+                    <dd className="mt-1">{formatResult(toolCall)}</dd>
                   </div>
                 </dl>
               </div>

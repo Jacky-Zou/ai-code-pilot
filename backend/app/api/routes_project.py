@@ -8,6 +8,7 @@ from app.api.schemas import (
     ProjectSearchResult,
 )
 from app.core.logger import get_logger
+from app.core.project_paths import normalize_project_path
 from app.rag.embeddings import LocalHashEmbeddingClient
 from app.rag.retriever import CodeRetriever
 
@@ -28,11 +29,12 @@ def index_project(
 ) -> ProjectIndexResponse:
     """Build or refresh the code retrieval index for a local project path."""
 
-    logger.info("Project index request received project_path=%s", request.project_path)
-    stats = retriever.index_project(request.project_path)
+    project_path = normalize_project_path(request.project_path)
+    logger.info("Project index request received project_path=%s normalized_project_path=%s", request.project_path, project_path)
+    stats = retriever.index_project(project_path)
     logger.info(
         "Project index completed project_path=%s indexed_files=%s chunks=%s",
-        request.project_path,
+        project_path,
         stats["indexed_files"],
         stats["chunks"],
     )

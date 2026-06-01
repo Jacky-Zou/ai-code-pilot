@@ -33,6 +33,8 @@ class Settings(BaseSettings):
 
     vector_store_path: Path = Field(default=Path("./data/vector_store"), alias="VECTOR_STORE_PATH")
     vector_store_backend: str = Field(default="chroma", alias="VECTOR_STORE_BACKEND")
+    projects_host_root: str | None = Field(default=None, alias="PROJECTS_HOST_ROOT")
+    projects_container_root: str | None = Field(default="/workspace", alias="PROJECTS_CONTAINER_ROOT")
     cors_allowed_origins: str = Field(
         default="http://localhost:3000,http://127.0.0.1:3000",
         alias="CORS_ALLOWED_ORIGINS",
@@ -108,6 +110,14 @@ class Settings(BaseSettings):
         if not normalized:
             raise ValueError("model name cannot be empty")
         return normalized
+
+    @field_validator("projects_host_root", "projects_container_root")
+    @classmethod
+    def normalize_optional_path_string(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().rstrip("\\/")
+        return normalized or None
 
     @model_validator(mode="after")
     def validate_supported_runtime_choices(self) -> "Settings":

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.agent.schemas import AgentResponse
@@ -60,14 +62,14 @@ def test_main_app_exposes_openapi_schema() -> None:
     assert "/api/projects/search" in paths
 
 
-def test_main_app_wires_phase_three_routers() -> None:
+def test_main_app_wires_phase_three_routers(tmp_path: Path) -> None:
     test_app = create_app()
     test_app.dependency_overrides[get_agent] = lambda: FakeAgent()
     test_app.dependency_overrides[get_retriever] = lambda: FakeRetriever()
     client = TestClient(test_app)
 
     chat_response = client.post("/api/chat", json={"message": "hello"})
-    index_response = client.post("/api/projects/index", json={"project_path": "/tmp/project"})
+    index_response = client.post("/api/projects/index", json={"project_path": str(tmp_path)})
     search_response = client.post("/api/projects/search", json={"query": "main app"})
 
     assert chat_response.status_code == 200

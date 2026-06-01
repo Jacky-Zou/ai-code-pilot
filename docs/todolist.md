@@ -2,6 +2,15 @@
 
 Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 
+## Current Hardening: Agent Output and Docker Project Import
+
+| ID | Task | Description | Files | Validation | Status |
+|---|---|---|---|---|---|
+| H1-T01 | Prevent protocol leakage | Ensure tool JSON/XML and private thinking are never returned as the final user answer | `backend/app/agent/executor.py`, `backend/app/agent/planner.py`, `backend/tests/test_agent_executor.py` | Agent executor/planner regression tests pass | DONE ✅ |
+| H1-T02 | Improve file tools | Add robust project traversal, ignored directory pruning, `project_tree`, and `find_files` | `backend/app/tools/file_tools.py`, `backend/app/tools/search_tools.py`, `backend/app/tools/registry.py` | Tool/search/registry tests pass | DONE ✅ |
+| H1-T03 | Fix Docker project import | Map host project paths to container paths and document Docker workspace mounting | `backend/app/core/project_paths.py`, `docker-compose.yml`, `.env.example`, docs | Path mapping/API route tests pass; Docker smoke test passes | DONE ✅ |
+| H1-T04 | Improve Web UI workflow | Fix chat message direction, fixed scroll area, readable Agent Steps, and Code Evidence panels | `frontend/components/*`, `frontend/app/globals.css` | Frontend type/lint/build and browser smoke test pass | DONE ✅ |
+
 ## Phase 0: Project Initialization
 
 | ID | Task | Description | Files | Validation | Status |
