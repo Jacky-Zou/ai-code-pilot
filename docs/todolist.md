@@ -11,6 +11,17 @@ Status values: TODO, IN_PROGRESS, DONE ✅, BLOCKED.
 | H1-T03 | Fix Docker project import | Map host project paths to container paths and document Docker workspace mounting | `backend/app/core/project_paths.py`, `docker-compose.yml`, `.env.example`, docs | Path mapping/API route tests pass; Docker smoke test passes | DONE ✅ |
 | H1-T04 | Improve Web UI workflow | Fix chat message direction, fixed scroll area, readable Agent Steps, and Code Evidence panels | `frontend/components/*`, `frontend/app/globals.css` | Frontend type/lint/build and browser smoke test pass | DONE ✅ |
 
+## Current Frontend Redesign: Professional AI Code Workspace
+
+| ID | Task | Description | Files | Validation | Status |
+|---|---|---|---|---|---|
+| UI2-T01 | Rebuild workspace layout | Redesign the app shell into balanced left controls, central Agent Chat, and right insight rail | `frontend/components/*`, `frontend/app/globals.css` | Frontend type/lint/build and HTTP smoke test pass | DONE ✅ |
+| UI2-T02 | Upgrade model hub | Add domestic/global model tabs, model cards, provider logos, descriptions, and coming-soon states | `frontend/components/ProviderSelector.tsx` | Model selection works for OpenAI/DeepSeek; unsupported providers stay disabled | DONE ✅ |
+| UI2-T03 | Improve codebase import | Add folder picker, Docker-aware path input, indexing states, and Project Summary modal | `frontend/components/ChatWorkspace.tsx` | Local folder metadata renders; backend index API still works | DONE ✅ |
+| UI2-T04 | Enhance chat experience | Add auth mock, avatars, Markdown/GFM rendering, code highlighting, reasoning foldout, textarea composer, theme/language toggles | `frontend/components/ChatWorkspace.tsx`, `frontend/package.json` | Chat API call works; UI remains responsive and bounded | DONE ✅ |
+| UI2-T05 | Redesign right rail | Upgrade Agent Steps and Code Evidence readability, scrolling, wrapping, and code snippet styling | `frontend/components/ToolCallTimeline.tsx`, `frontend/components/CodeReference.tsx` | Long tool/result/reference content stays within bounds | DONE ✅ |
+| UI2-T06 | Update docs | Sync README and user/development docs with redesigned UI and feature boundaries | `README.md`, `docs/user-guide.md`, `docs/development-guide.md`, `docs/todolist.md` | Docs describe current behavior accurately | DONE ✅ |
+
 ## Phase 0: Project Initialization
 
 | ID | Task | Description | Files | Validation | Status |

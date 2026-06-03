@@ -230,3 +230,34 @@ The GitHub Actions draft mirrors the local backend quality gates:
 - Run `pytest backend/tests`.
 
 The workflow is stored at `.github/workflows/ci.yml` and runs on pushes and pull requests targeting `main`.
+
+## Frontend Redesign Validation
+
+The redesigned frontend keeps the backend API contract unchanged while improving the product workspace:
+
+- `ChatWorkspace.tsx` owns the app shell, theme/language state, local auth mock, folder picker, project summary modal, chat composer, and API calls.
+- `ProviderSelector.tsx` owns the Model Hub catalog, domestic/global tabs, provider logos, available model selection, and disabled coming-soon model cards.
+- `ToolCallTimeline.tsx` renders bounded Agent Steps with status, action, outcome, running state, and overflow-safe text.
+- `CodeReference.tsx` renders bounded Code Evidence cards with file paths, line numbers, copy action, and highlighted snippets.
+- `globals.css` defines the light/dark visual system, three-column workspace grid, panel components, chat Markdown styling, code highlighting, modal layouts, and responsive behavior.
+
+Current frontend-only features:
+
+- Login, register, profile settings, captcha, avatar upload, and forgot-password flows are UI/localStorage mocks.
+- Browser folder selection is used for metadata preview and Project Summary generation. Real backend indexing still uses a backend-visible path.
+- GLM, Qwen, and Claude are shown as disabled coming-soon models until backend provider modules are added.
+
+Validation commands:
+
+```bash
+cd frontend
+npm run typecheck
+npm run lint
+npm run build
+```
+
+Expected result:
+
+- TypeScript succeeds.
+- ESLint succeeds. The app may warn about ordinary `<img>` usage for remote provider logos and local avatar data URLs; these are accepted for the current mock/profile workflow.
+- Next.js production build succeeds.
