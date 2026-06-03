@@ -25,23 +25,17 @@ const LABELS = {
 };
 
 function formatLocation(reference: CodeReferenceItem): string {
-  if (reference.line_number === null || reference.line_number === undefined) {
-    return reference.file_path;
-  }
+  if (reference.line_number === null || reference.line_number === undefined) return reference.file_path;
   return `${reference.file_path}:${reference.line_number}`;
 }
 
 function formatScore(score: number | null): string | null {
-  if (score === null) {
-    return null;
-  }
+  if (score === null) return null;
   return score.toFixed(2);
 }
 
 function excerptSnippet(snippet: string | null): string {
-  if (!snippet) {
-    return "";
-  }
+  if (!snippet) return "";
   const lines = snippet.split(/\r?\n/).filter(Boolean);
   return lines.slice(0, 8).join("\n");
 }
@@ -59,7 +53,7 @@ export function CodeReference({ language = "zh", references }: CodeReferenceProp
         <Search className="h-5 w-5 text-accent" aria-hidden="true" />
       </div>
 
-      <p className="mb-4 text-xs leading-5 text-muted">{labels.subtitle}</p>
+      <p className="panel-subtitle">{labels.subtitle}</p>
 
       {references.length === 0 ? (
         <div className="empty-state">
@@ -72,16 +66,15 @@ export function CodeReference({ language = "zh", references }: CodeReferenceProp
         {references.map((reference, index) => {
           const score = formatScore(reference.score);
           const snippet = excerptSnippet(reference.snippet) || labels.referenced;
+          const location = formatLocation(reference);
 
           return (
             <article className="code-evidence-card" key={`${reference.file_path}-${index}`}>
-              <div className="mb-2 flex items-start justify-between gap-3">
+              <div className="evidence-header">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="evidence-path">
                     <Braces className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-                    <span className="min-w-0 truncate font-mono text-xs font-semibold">
-                      {formatLocation(reference)}
-                    </span>
+                    <span>{location}</span>
                   </div>
                   {score ? (
                     <div className="mt-1 text-xs text-muted">
@@ -90,8 +83,8 @@ export function CodeReference({ language = "zh", references }: CodeReferenceProp
                   ) : null}
                 </div>
                 <button
-                  className="icon-button h-7 w-7"
-                  onClick={() => navigator.clipboard?.writeText(formatLocation(reference))}
+                  className="icon-button compact"
+                  onClick={() => navigator.clipboard?.writeText(location)}
                   title="Copy path"
                   type="button"
                 >

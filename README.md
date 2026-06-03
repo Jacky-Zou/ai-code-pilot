@@ -4,7 +4,7 @@ AICodePilot is an AI coding assistant for codebase understanding and development
 
 Full title: **AICodePilot: LLM Agent based AI codebase understanding and development assistant**.
 
-## Core Features 鉁?
+## Core Features
 - Codebase structure analysis and project file exploration.
 - Safe local file reading and text search tools.
 - Hand-written Agent execution loop with structured tool calling.
@@ -15,7 +15,7 @@ Full title: **AICodePilot: LLM Agent based AI codebase understanding and develop
 - Advanced development tools including log analysis, safe command execution, and patch suggestions.
 - Docker and docker-compose deployment.
 
-## Tech Stack 馃О
+## Tech Stack
 
 Backend:
 
@@ -49,7 +49,7 @@ Deployment:
 - docker-compose
 - `.env` based configuration
 
-## Model Providers 馃攣
+## Model Providers
 
 AICodePilot uses OpenAI / ChatGPT by default:
 
@@ -67,7 +67,7 @@ LLM_MODEL=deepseek-v4-pro
 
 API requests may override the default provider and model per request.
 
-## Configuration Quality 馃洝锔?
+## Configuration Quality
 Phase 6 starts by tightening runtime configuration validation:
 
 - `LLM_PROVIDER` must be `openai` or `deepseek`.
@@ -77,7 +77,7 @@ Phase 6 starts by tightening runtime configuration validation:
 - OpenAI and DeepSeek base URLs are normalized and must start with `http://` or `https://`.
 - A blank `LLM_MODEL` falls back to the selected provider default, so provider switching keeps a predictable model.
 
-## Roadmap 馃椇锔?
+## Roadmap
 1. Project initialization.
 2. Mini Agent CLI with tool calling.
 3. RAG code retrieval.
@@ -88,7 +88,7 @@ Phase 6 starts by tightening runtime configuration validation:
 8. Docker deployment.
 9. Documentation and resume packaging.
 
-## Quick Start 馃殌
+## Quick Start
 
 Copy the example environment file first and put real API keys only in `.env`:
 
@@ -159,7 +159,7 @@ With that mapping, a host path such as `D:/code/my_projects/demo-api` is automat
 resolved by the backend to `/workspace/demo-api`. You may also type the container path
 directly in the Web UI.
 
-## Mini Agent CLI 馃
+## Mini Agent CLI
 
 Phase 1 provides a command-line Mini Agent with:
 
@@ -183,7 +183,7 @@ Read README.md
 Search FastAPI in this project
 ```
 
-## RAG Code Retrieval 馃攷
+## RAG Code Retrieval
 
 Phase 2 adds a local code retrieval loop:
 
@@ -202,7 +202,7 @@ Where is configuration loaded?
 How is the tool registry implemented?
 ```
 
-## FastAPI Backend APIs 馃殌
+## FastAPI Backend APIs
 
 Phase 3 exposes the Agent and RAG retrieval flow through FastAPI:
 
@@ -227,6 +227,14 @@ Example chat request:
 API requests can override the default provider/model per call. Full endpoint schemas, response examples, and error codes are documented in [API](docs/api.md).
 
 ## Web UI Progress
+
+中文说明：
+
+- **模型中心**：支持国内/国外模型切换，DeepSeek V4-Pro 为默认国内模型，GPT-5.2 为 OpenAI 选项；GLM、Qwen、Claude 作为待接入模型展示。
+- **代码库导入**：支持打开本地文件夹生成前端摘要，同时保留后端可访问路径输入，用于真实 RAG 索引；Docker 场景需要配置路径映射。
+- **Agent Chat**：固定高度的中心对话区，支持 Markdown、表格、代码块高亮、Shift+Enter 换行、用户/AI 头像和执行摘要折叠。
+- **执行步骤与代码证据**：右侧面板展示工具调用动作、结果、文件路径、行号和核心代码片段，长内容会在面板内部滚动。
+- **登录资料界面**：当前为前端本地演示认证，包含登录、注册、验证码、头像上传、个人资料保存和密码重置入口。
 
 The frontend is now a professional three-column AI code workspace:
 
@@ -273,7 +281,7 @@ Open:
 http://127.0.0.1:3000
 ```
 
-## Advanced Agent Progress 馃
+## Advanced Agent Progress
 
 Phase 5 starts by adding bounded conversation memory:
 
@@ -308,7 +316,7 @@ Advanced tools are now connected to the Agent path:
 - Patch suggestions returned by tools are validated and forwarded in `AgentResponse`.
 - The advanced tool security model is documented in [Security](docs/security.md).
 
-## Phase Validation 鉁?
+## Phase Validation
 At the end of each phase, AICodePilot runs a full project sanity check before moving forward:
 
 - Verify the code structure still matches the planned Agent, tools, RAG, API, and docs layout.
@@ -339,7 +347,7 @@ Phase 6 type validation adds a mypy configuration for the backend package, inclu
 
 Phase 6 CI validation adds a GitHub Actions workflow draft that runs Ruff, Black, mypy, and backend tests on pushes and pull requests.
 
-## Documentation 馃摎
+## Documentation
 
 - [Architecture](docs/architecture.md)
 - [Agent Design](docs/agent-design.md)
@@ -352,6 +360,6 @@ Phase 6 CI validation adds a GitHub Actions workflow draft that runs Ruff, Black
 - [Resume Guide](docs/resume.md)
 - [TodoList](docs/todolist.md)
 
-## License 馃搫
+## License
 
 This project is released under the MIT License. See [LICENSE](LICENSE).

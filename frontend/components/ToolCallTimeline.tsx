@@ -11,7 +11,7 @@ export interface ToolCallTimelineProps {
 const LABELS = {
   zh: {
     title: "执行步骤",
-    subtitle: "展示 Agent 如何检索、读取和分析代码。",
+    subtitle: "展示 Agent 如何搜索、读取和分析代码。",
     empty: "等待 Agent 执行任务。",
     action: "动作",
     outcome: "结果",
@@ -43,15 +43,9 @@ function formatArguments(toolCall: ToolResult, language: Language): string {
   const search = language === "zh" ? "搜索" : "Search";
   const retrieve = language === "zh" ? "语义检索" : "Retrieve";
 
-  if (toolCall.name === "read_file") {
-    return `${read} ${String(args.file_path ?? "selected file")}`;
-  }
-  if (toolCall.name === "search_text") {
-    return `${search} "${String(args.keyword ?? "")}"`;
-  }
-  if (toolCall.name === "retrieve_code") {
-    return `${retrieve} "${String(args.query ?? "")}"`;
-  }
+  if (toolCall.name === "read_file") return `${read} ${String(args.file_path ?? "selected file")}`;
+  if (toolCall.name === "search_text") return `${search} "${String(args.keyword ?? "")}"`;
+  if (toolCall.name === "retrieve_code") return `${retrieve} "${String(args.query ?? "")}"`;
   if (toolCall.name === "project_tree") {
     return language === "zh"
       ? `生成项目结构，深度 ${String(args.max_depth ?? 3)}`
@@ -62,16 +56,12 @@ function formatArguments(toolCall: ToolResult, language: Language): string {
       ? `查找文件 "${String(args.pattern ?? "")}"`
       : `Find files matching "${String(args.pattern ?? "")}"`;
   }
-  if (toolCall.name === "list_files") {
-    return language === "zh" ? "列出项目文件" : "List project files";
-  }
+  if (toolCall.name === "list_files") return language === "zh" ? "列出项目文件" : "List project files";
   return language === "zh" ? "运行开发工具" : "Run development tool";
 }
 
 function formatResult(toolCall: ToolResult, language: Language): string {
-  if (toolCall.error) {
-    return toolCall.error;
-  }
+  if (toolCall.error) return toolCall.error;
 
   const result = asRecord(toolCall.result);
   if (toolCall.name === "read_file") {
@@ -124,7 +114,7 @@ export function ToolCallTimeline({ isRunning = false, language = "zh", toolCalls
         <GitBranch className="h-5 w-5 text-primary" aria-hidden="true" />
       </div>
 
-      <p className="mb-4 text-xs leading-5 text-muted">{labels.subtitle}</p>
+      <p className="panel-subtitle">{labels.subtitle}</p>
 
       {displayCalls.length === 0 ? (
         <div className="empty-state">
@@ -150,19 +140,17 @@ export function ToolCallTimeline({ isRunning = false, language = "zh", toolCalls
                   <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
               </div>
-              <div className="min-w-0 flex-1 rounded-xl border border-border bg-panel-strong p-3">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <h3 className="min-w-0 truncate text-sm font-semibold">
-                    {isPending ? (language === "zh" ? "综合上下文" : "Synthesizing") : toolCall.name}
-                  </h3>
+              <div className="step-card">
+                <div className="step-card-header">
+                  <h3>{isPending ? (language === "zh" ? "综合上下文" : "Synthesizing") : toolCall.name}</h3>
                   <span className={`status-pill ${hasError ? "danger" : isPending ? "running" : "ready"}`}>
                     {statusLabel}
                   </span>
                 </div>
-                <dl className="space-y-2 text-xs text-muted">
+                <dl className="step-meta">
                   <div>
-                    <dt className="font-medium text-foreground">{labels.action}</dt>
-                    <dd className="mt-1 break-words leading-5">
+                    <dt>{labels.action}</dt>
+                    <dd>
                       {isPending
                         ? language === "zh"
                           ? "整理工具结果并生成最终回答"
@@ -171,8 +159,8 @@ export function ToolCallTimeline({ isRunning = false, language = "zh", toolCalls
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-medium text-foreground">{hasError ? labels.problem : labels.outcome}</dt>
-                    <dd className="mt-1 max-h-20 overflow-auto break-words leading-5">
+                    <dt>{hasError ? labels.problem : labels.outcome}</dt>
+                    <dd>
                       {isPending
                         ? language === "zh"
                           ? "等待模型返回"

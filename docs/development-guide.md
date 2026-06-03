@@ -1,6 +1,6 @@
 # Development Guide 🧑‍💻
 
-AICodePilot follows phased delivery. Each task must move from `TODO` to `IN_PROGRESS` to `DONE ✅` only after validation passes.
+AICodePilot follows phased delivery. Each task must move from `TODO` to `IN_PROGRESS` to `DONE` only after validation passes.
 
 ## Workflow Rules ✅
 

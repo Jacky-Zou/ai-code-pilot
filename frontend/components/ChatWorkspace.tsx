@@ -10,7 +10,6 @@ import {
   ChevronDown,
   Code2,
   Database,
-  FileCode2,
   FolderOpen,
   KeyRound,
   Languages,
@@ -114,46 +113,66 @@ const COPY = {
     apiUnavailable: "Backend API 不可用",
     appSubtitle: "专业代码库理解与开发辅助工作台",
     askPlaceholder: "询问这个代码库，Shift + Enter 换行...",
+    captcha: "验证码",
     codebase: "代码库导入",
-    codebaseHint: "Docker 环境建议配置 D:/code/my_projects -> /workspace，也可直接输入容器内路径。",
+    codebaseHint:
+      "浏览器只能选择本地文件夹用于前端摘要。真正索引需要输入后端可访问路径；Docker 中建议把 D:/code/my_projects 映射到 /workspace。",
     contextWarning: "输入较长，请确认模型上下文足够。",
+    currentPassword: "当前密码",
     dockerPath: "后端可访问路径",
+    emailOrUsername: "邮箱 / 用户名",
     forgot: "忘记密码",
     index: "索引代码库",
     indexing: "索引中",
     loadExample: "加载示例对话",
     login: "登录",
     logout: "退出登录",
+    newPassword: "新密码",
+    password: "密码",
     profile: "个人信息设置",
     register: "注册",
+    resetPassword: "重置密码",
+    saveProfile: "保存个人资料",
     send: "发送",
     summary: "项目摘要",
     theme: "主题",
     tools: "能力入口",
-    uploadFolder: "打开本地文件夹"
+    uploadAvatar: "上传头像",
+    uploadFolder: "打开本地文件夹",
+    username: "用户名"
   },
   en: {
     apiReady: "Backend API ready",
     apiUnavailable: "Backend API unavailable",
     appSubtitle: "Professional codebase Agent workspace",
     askPlaceholder: "Ask about this codebase, Shift + Enter for newline...",
+    captcha: "Captcha",
     codebase: "Codebase Import",
-    codebaseHint: "In Docker, map D:/code/my_projects -> /workspace or use a container-visible path.",
+    codebaseHint:
+      "Folder selection is used for the frontend summary. Real indexing requires a backend-visible path; in Docker, map D:/code/my_projects to /workspace.",
     contextWarning: "Long input. Make sure the selected model context is sufficient.",
+    currentPassword: "Current password",
     dockerPath: "Backend-visible path",
+    emailOrUsername: "Email / username",
     forgot: "Forgot password",
     index: "Index codebase",
     indexing: "Indexing",
     loadExample: "Load example",
     login: "Sign in",
     logout: "Sign out",
+    newPassword: "New password",
+    password: "Password",
     profile: "Profile settings",
     register: "Create account",
+    resetPassword: "Reset password",
+    saveProfile: "Save profile",
     send: "Send",
     summary: "Project Summary",
     theme: "Theme",
     tools: "Capabilities",
-    uploadFolder: "Open local folder"
+    uploadAvatar: "Upload avatar",
+    uploadFolder: "Open local folder",
+    username: "Username"
   }
 };
 
@@ -203,9 +222,7 @@ function formatApiError(error: unknown): string {
     }
     return error.body?.detail ? JSON.stringify(error.body.detail) : error.message;
   }
-  if (error instanceof Error) {
-    return error.message;
-  }
+  if (error instanceof Error) return error.message;
   return "Chat request failed.";
 }
 
@@ -237,7 +254,9 @@ function buildProjectSummary(
 
   for (const file of folderFiles.slice(0, 800)) {
     const relativePath = file.webkitRelativePath || file.name;
-    languageCounts.set(inferLanguage(relativePath), (languageCounts.get(inferLanguage(relativePath)) ?? 0) + 1);
+    const language = inferLanguage(relativePath);
+    languageCounts.set(language, (languageCounts.get(language) ?? 0) + 1);
+
     const parts = relativePath.split("/").filter(Boolean);
     if (parts.length > 1) {
       structure.add(parts.slice(0, Math.min(parts.length, 3)).join("/"));
@@ -291,7 +310,11 @@ function MarkdownMessage({ content }: { content: string }) {
           );
         },
         table({ children }) {
-          return <div className="markdown-table-wrap"><table>{children}</table></div>;
+          return (
+            <div className="markdown-table-wrap">
+              <table>{children}</table>
+            </div>
+          );
         }
       }}
     >
@@ -322,6 +345,7 @@ export function ChatWorkspace() {
   const [authMode, setAuthMode] = useState<AuthMode | null>(null);
   const [captchaCode, setCaptchaCode] = useState(randomCaptcha);
   const [captchaInput, setCaptchaInput] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -338,14 +362,15 @@ export function ChatWorkspace() {
     const storedLanguage = window.localStorage.getItem("aicodepilot-language") as Language | null;
     const storedTheme = window.localStorage.getItem("aicodepilot-theme") as Theme | null;
     const storedUser = window.localStorage.getItem("aicodepilot-user");
-    if (storedLanguage === "zh" || storedLanguage === "en") {
-      setLanguage(storedLanguage);
-    }
-    if (storedTheme === "light" || storedTheme === "dark") {
-      setTheme(storedTheme);
-    }
+
+    if (storedLanguage === "zh" || storedLanguage === "en") setLanguage(storedLanguage);
+    if (storedTheme === "light" || storedTheme === "dark") setTheme(storedTheme);
     if (storedUser) {
-      setAuthUser(JSON.parse(storedUser) as AuthUser);
+      try {
+        setAuthUser(JSON.parse(storedUser) as AuthUser);
+      } catch {
+        window.localStorage.removeItem("aicodepilot-user");
+      }
     }
   }, []);
 
@@ -374,9 +399,7 @@ export function ChatWorkspace() {
   async function handleSubmit(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     const trimmedMessage = message.trim();
-    if (!trimmedMessage || isSending) {
-      return;
-    }
+    if (!trimmedMessage || isSending) return;
     if (!authUser) {
       setAuthMode("login");
       return;
@@ -389,7 +412,7 @@ export function ChatWorkspace() {
     };
 
     // Optimistic UI keeps the chat responsive while the backend Agent performs
-    // potentially multi-step tool planning, RAG lookup, and final synthesis.
+    // tool planning, RAG lookup, and final answer synthesis.
     setMessages((current) => [...current, userMessage]);
     setMessage("");
     setError(null);
@@ -420,9 +443,7 @@ export function ChatWorkspace() {
 
   async function handleIndexProject() {
     const trimmedProjectPath = projectPath.trim();
-    if (!trimmedProjectPath || isIndexing) {
-      return;
-    }
+    if (!trimmedProjectPath || isIndexing) return;
 
     setIsIndexing(true);
     setIndexError(null);
@@ -460,34 +481,56 @@ export function ChatWorkspace() {
 
   function handleAuthSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (captchaInput.trim().toUpperCase() !== captchaCode) {
+    setAuthError(null);
+
+    if (authMode !== "profile" && captchaInput.trim().toUpperCase() !== captchaCode) {
+      setAuthError(language === "zh" ? "验证码不正确，请重新输入。" : "Captcha is incorrect. Please try again.");
       setCaptchaCode(randomCaptcha());
       setCaptchaInput("");
       return;
     }
+
     const form = new FormData(event.currentTarget);
+    const fallbackName = authUser?.name || "Jacky";
+    const nextName = String(form.get("username") || form.get("email") || fallbackName).trim() || fallbackName;
     const nextUser = {
       avatarUrl: authUser?.avatarUrl ?? DEFAULT_AVATAR,
-      name: String(form.get("username") || form.get("email") || "Jacky")
+      name: nextName
     };
+
+    // This MVP keeps authentication state in localStorage. The UI contract is
+    // shaped like a production auth flow so it can later be swapped to backend
+    // sessions without redesigning the workspace.
     setAuthUser(nextUser);
     window.localStorage.setItem("aicodepilot-user", JSON.stringify(nextUser));
     setCaptchaInput("");
+    setCaptchaCode(randomCaptcha());
     setAuthMode(null);
+    setIsUserMenuOpen(false);
   }
 
   function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file || !authUser) {
-      return;
-    }
+    if (!file) return;
+
     const reader = new FileReader();
     reader.onload = () => {
-      const nextUser = { ...authUser, avatarUrl: String(reader.result) };
+      const nextUser = {
+        avatarUrl: String(reader.result),
+        name: authUser?.name ?? "Jacky"
+      };
       setAuthUser(nextUser);
       window.localStorage.setItem("aicodepilot-user", JSON.stringify(nextUser));
     };
     reader.readAsDataURL(file);
+  }
+
+  function openAuthMode(nextMode: AuthMode) {
+    setAuthError(null);
+    setCaptchaInput("");
+    setCaptchaCode(randomCaptcha());
+    setAuthMode(nextMode);
+    setIsUserMenuOpen(false);
   }
 
   function loadDemo() {
@@ -539,13 +582,13 @@ export function ChatWorkspace() {
               </button>
               {isUserMenuOpen ? (
                 <div className="user-menu">
-                  <button onClick={() => setAuthMode("profile")} type="button">
+                  <button onClick={() => openAuthMode("profile")} type="button">
                     <Settings className="h-4 w-4" />
                     {labels.profile}
                   </button>
-                  <button onClick={() => setAuthMode("forgot")} type="button">
+                  <button onClick={() => openAuthMode("forgot")} type="button">
                     <KeyRound className="h-4 w-4" />
-                    {labels.forgot}
+                    {labels.resetPassword}
                   </button>
                   <button
                     onClick={() => {
@@ -562,7 +605,7 @@ export function ChatWorkspace() {
               ) : null}
             </div>
           ) : (
-            <button className="primary-soft-button" onClick={() => setAuthMode("login")} type="button">
+            <button className="primary-soft-button" onClick={() => openAuthMode("login")} type="button">
               <User className="h-4 w-4" />
               {labels.login}
             </button>
@@ -574,7 +617,7 @@ export function ChatWorkspace() {
         <aside className="workspace-column left-rail">
           <ProviderSelector language={language} onChange={setSelection} value={selection} />
 
-          <section className="panel-card">
+          <section className="panel-card codebase-panel">
             <div className="panel-heading">
               <div>
                 <p className="panel-kicker">Repository</p>
@@ -587,7 +630,7 @@ export function ChatWorkspace() {
             <button
               className="secondary-button mb-3 w-full"
               onClick={() => {
-                folderInputRef.current?.setAttribute("webkitdirectory", "");
+                folderInputRef.current?.setAttribute("webkitdirectory", "true");
                 folderInputRef.current?.click();
               }}
               type="button"
@@ -626,7 +669,7 @@ export function ChatWorkspace() {
             {indexError ? <div className="error-box mt-3">{indexError}</div> : null}
           </section>
 
-          <section className="panel-card flex-1">
+          <section className="panel-card capability-panel">
             <div className="panel-heading">
               <div>
                 <p className="panel-kicker">Roadmap</p>
@@ -638,7 +681,7 @@ export function ChatWorkspace() {
               {CAPABILITIES[language].map((capability) => (
                 <button className="capability-chip" key={capability} type="button">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  {capability}
+                  <span>{capability}</span>
                 </button>
               ))}
             </div>
@@ -743,14 +786,16 @@ export function ChatWorkspace() {
 
       {authMode ? (
         <AuthModal
+          authError={authError}
           authMode={authMode}
           captchaCode={captchaCode}
           captchaInput={captchaInput}
           language={language}
+          labels={labels}
           onAvatarUpload={handleAvatarUpload}
           onCaptchaChange={setCaptchaInput}
           onClose={() => setAuthMode(null)}
-          onModeChange={setAuthMode}
+          onModeChange={openAuthMode}
           onRefreshCaptcha={() => setCaptchaCode(randomCaptcha())}
           onSubmit={handleAuthSubmit}
           user={authUser}
@@ -845,10 +890,12 @@ function ProjectSummaryModal({
 }
 
 function AuthModal({
+  authError,
   authMode,
   captchaCode,
   captchaInput,
   language,
+  labels,
   onAvatarUpload,
   onCaptchaChange,
   onClose,
@@ -857,10 +904,12 @@ function AuthModal({
   onSubmit,
   user
 }: {
+  authError: string | null;
   authMode: AuthMode;
   captchaCode: string;
   captchaInput: string;
   language: Language;
+  labels: (typeof COPY)["zh"];
   onAvatarUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   onCaptchaChange: (value: string) => void;
   onClose: () => void;
@@ -870,22 +919,16 @@ function AuthModal({
   user: AuthUser | null;
 }) {
   const isProfile = authMode === "profile";
+  const isForgot = authMode === "forgot";
   const title =
-    language === "zh"
-      ? authMode === "login"
-        ? "登录 AICodePilot"
-        : authMode === "register"
-          ? "创建账号"
-          : authMode === "forgot"
-            ? "找回密码"
-            : "个人信息设置"
-      : authMode === "login"
-        ? "Sign in"
-        : authMode === "register"
-          ? "Create account"
-          : authMode === "forgot"
-            ? "Reset password"
-            : "Profile settings";
+    authMode === "login"
+      ? labels.login
+      : authMode === "register"
+        ? labels.register
+        : authMode === "forgot"
+          ? labels.resetPassword
+          : labels.profile;
+  const submitLabel = isProfile ? labels.saveProfile : title;
 
   return (
     <div className="modal-backdrop">
@@ -904,51 +947,81 @@ function AuthModal({
           <div className="profile-avatar">
             <img alt="" src={user?.avatarUrl ?? DEFAULT_AVATAR} />
             <label className="secondary-button">
-              {language === "zh" ? "上传头像" : "Upload avatar"}
+              {labels.uploadAvatar}
               <input accept="image/*" className="hidden" onChange={onAvatarUpload} type="file" />
             </label>
           </div>
         ) : null}
 
-        <label className="field-label">{language === "zh" ? "邮箱 / 用户名" : "Email / username"}</label>
-        <input className="field-input" name={authMode === "login" ? "email" : "username"} required />
+        <label className="field-label">{isProfile ? labels.username : labels.emailOrUsername}</label>
+        <input
+          className="field-input"
+          defaultValue={isProfile ? user?.name : ""}
+          name={isProfile || authMode === "register" ? "username" : "email"}
+          required
+        />
 
-        {authMode !== "forgot" ? (
+        {!isForgot ? (
           <>
-            <label className="field-label">{language === "zh" ? "密码" : "Password"}</label>
-            <input className="field-input" minLength={6} name="password" required type="password" />
+            <label className="field-label">{isProfile ? labels.currentPassword : labels.password}</label>
+            <input
+              className="field-input"
+              minLength={isProfile ? undefined : 6}
+              name="password"
+              required={!isProfile}
+              type="password"
+            />
           </>
         ) : null}
 
-        <label className="field-label">{language === "zh" ? "验证码" : "Captcha"}</label>
-        <div className="captcha-row">
-          <input
-            className="field-input"
-            onChange={(event) => onCaptchaChange(event.target.value)}
-            required
-            value={captchaInput}
-          />
-          <button className="captcha-code" onClick={onRefreshCaptcha} type="button">
-            {captchaCode}
-          </button>
-        </div>
+        {isProfile || isForgot ? (
+          <>
+            <label className="field-label">{labels.newPassword}</label>
+            <input className="field-input" minLength={6} name="newPassword" required={isForgot} type="password" />
+          </>
+        ) : null}
+
+        {!isProfile ? (
+          <>
+            <label className="field-label">{labels.captcha}</label>
+            <div className="captcha-row">
+              <input
+                className="field-input"
+                onChange={(event) => onCaptchaChange(event.target.value)}
+                required
+                value={captchaInput}
+              />
+              <button className="captcha-code" onClick={onRefreshCaptcha} type="button">
+                {captchaCode}
+              </button>
+            </div>
+          </>
+        ) : null}
+
+        {authError ? <div className="error-box mb-3">{authError}</div> : null}
 
         <button className="primary-button w-full" type="submit">
           {authMode === "register" ? <UserPlus className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
-          {title}
+          {submitLabel}
         </button>
 
         <div className="auth-links">
           <button onClick={() => onModeChange("login")} type="button">
-            {language === "zh" ? "登录" : "Sign in"}
+            {labels.login}
           </button>
           <button onClick={() => onModeChange("register")} type="button">
-            {language === "zh" ? "注册" : "Register"}
+            {labels.register}
           </button>
           <button onClick={() => onModeChange("forgot")} type="button">
-            {language === "zh" ? "忘记密码" : "Forgot password"}
+            {labels.forgot}
           </button>
         </div>
+
+        <p className="auth-note">
+          {language === "zh"
+            ? "当前版本为前端本地演示认证，后续可替换为后端会话和邮箱验证码。"
+            : "This MVP uses local demo auth and can be replaced with backend sessions later."}
+        </p>
       </form>
     </div>
   );
