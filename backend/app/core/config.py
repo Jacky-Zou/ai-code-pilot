@@ -8,6 +8,8 @@ SUPPORTED_LLM_PROVIDERS = {"openai", "deepseek"}
 SUPPORTED_EMBEDDING_PROVIDERS = {"openai", "local"}
 SUPPORTED_VECTOR_STORE_BACKENDS = {"chroma", "json", "memory"}
 SUPPORTED_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+ROOT_ENV_FILE = PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
@@ -41,7 +43,7 @@ class Settings(BaseSettings):
     )
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(ROOT_ENV_FILE, ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,

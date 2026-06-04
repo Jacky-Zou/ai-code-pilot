@@ -63,6 +63,7 @@ type WorkspaceNode = {
 };
 
 type ProjectSummary = {
+  architecture: string[];
   chunks: number;
   description: string;
   files: number;
@@ -70,8 +71,11 @@ type ProjectSummary = {
   languages: Array<{ label: string; percent: number; value: number }>;
   lineCount: number;
   name: string;
+  path?: string;
+  purpose: string;
   sizeBytes: number;
   structure: string[];
+  techStack: string[];
 };
 
 const DEFAULT_PROJECT_PATH = process.env.NEXT_PUBLIC_DEFAULT_PROJECT_PATH ?? "/workspace";
@@ -182,6 +186,35 @@ function inferLanguage(fileName: string): string {
   return "Other";
 }
 
+function detectTechStack(fileNames: string[]): string[] {
+  const normalized = fileNames.map((fileName) => fileName.replace(/\\/g, "/").toLowerCase());
+  const names = new Set(normalized.map((fileName) => fileName.split("/").at(-1) ?? fileName));
+  const stack: string[] = [];
+  if (names.has("requirements.txt") || names.has("pyproject.toml")) stack.push("Python");
+  if (names.has("package.json")) stack.push("Node.js");
+  if (normalized.some((fileName) => fileName.endsWith(".tsx") || fileName.endsWith(".jsx"))) stack.push("React");
+  if (normalized.some((fileName) => fileName.includes("next.config") || fileName.startsWith("app/"))) stack.push("Next.js");
+  if (normalized.some((fileName) => fileName.includes("tailwind"))) stack.push("Tailwind CSS");
+  if (names.has("docker-compose.yml") || names.has("dockerfile")) stack.push("Docker");
+  if (normalized.some((fileName) => fileName.includes("/agent/") || fileName.startsWith("agent/"))) stack.push("LLM Agent");
+  if (normalized.some((fileName) => fileName.includes("/rag/") || fileName.startsWith("rag/"))) stack.push("RAG");
+  return Array.from(new Set(stack)).slice(0, 10);
+}
+
+function detectArchitecture(fileNames: string[]): string[] {
+  const normalized = fileNames.map((fileName) => fileName.replace(/\\/g, "/").toLowerCase());
+  const roots = new Set(normalized.map((fileName) => fileName.split("/")[0]));
+  const architecture: string[] = [];
+  if (roots.has("backend")) architecture.push("Backend service layer");
+  if (roots.has("frontend")) architecture.push("Frontend workspace application");
+  if (normalized.some((fileName) => fileName.includes("/agent/"))) architecture.push("Agent planner/executor core");
+  if (normalized.some((fileName) => fileName.includes("/tools/"))) architecture.push("Tool calling layer");
+  if (normalized.some((fileName) => fileName.includes("/rag/"))) architecture.push("RAG indexing and retrieval layer");
+  if (roots.has("docs")) architecture.push("Documentation package");
+  if (normalized.some((fileName) => fileName.includes("/tests/") || fileName.startsWith("tests/"))) architecture.push("Automated test suite");
+  return architecture.slice(0, 8);
+}
+
 function buildWorkspaceTree(files: File[]): WorkspaceNode[] {
   type MutableNode = WorkspaceNode & { childMap?: Map<string, MutableNode> };
   const root = new Map<string, MutableNode>();
@@ -242,6 +275,7 @@ async function buildImportSummary(
       : firstFile?.name || "Workspace";
   const languageCounts = new Map<string, number>();
   const structure = new Set<string>();
+  const relativePaths = files.map((file) => file.webkitRelativePath || file.name);
   let lineCount = 0;
   let sizeBytes = 0;
 
@@ -274,15 +308,19 @@ async function buildImportSummary(
     chunks: stats?.chunks ?? 0,
     description:
       kind === "folder"
-        ? "Local folder imported for frontend structure preview."
-        : "Single code file imported for frontend preview.",
+        ? "Project or folder imported successfully. The overview below is generated from the selected source files."
+        : "Code file imported successfully. The overview below is generated from the selected file.",
     files: files.length,
     kind,
     languages,
     lineCount,
     name: rootName,
+    purpose:
+      "This workspace can now be inspected by AICodePilot for codebase understanding, implementation lookup, debugging support, and documentation workflows.",
     sizeBytes,
-    structure: structure.size > 0 ? Array.from(structure).slice(0, 14) : files.map((file) => file.name).slice(0, 14)
+    structure: structure.size > 0 ? Array.from(structure).slice(0, 14) : files.map((file) => file.name).slice(0, 14),
+    techStack: detectTechStack(relativePaths),
+    architecture: detectArchitecture(relativePaths)
   };
 }
 
@@ -424,21 +462,21 @@ export function ChatWorkspace() {
     try {
       const stats = await indexProject({ project_path: trimmedProjectPath });
       setIndexStats(stats);
-      setProjectSummary((current) =>
-        current
-          ? { ...current, chunks: stats.chunks, files: Math.max(current.files, stats.indexed_files) }
-          : {
-              chunks: stats.chunks,
-              description: "Backend-visible workspace indexed for semantic retrieval.",
-              files: stats.indexed_files,
-              kind: "folder",
-              languages: [],
-              lineCount: 0,
-              name: trimmedProjectPath.replace(/\\/g, "/").split("/").filter(Boolean).at(-1) ?? "Workspace",
-              sizeBytes: 0,
-              structure: []
-            }
-      );
+      setProjectSummary({
+        architecture: stats.architecture,
+        chunks: stats.chunks,
+        description: stats.summary || "Backend-visible workspace indexed for semantic retrieval.",
+        files: stats.indexed_files,
+        kind: "folder",
+        languages: stats.languages.map((item) => ({ label: item.label, percent: item.percent, value: item.files })),
+        lineCount: stats.line_count,
+        name: stats.project_name || trimmedProjectPath.replace(/\\/g, "/").split("/").filter(Boolean).at(-1) || "Workspace",
+        path: stats.project_path || trimmedProjectPath,
+        purpose: stats.likely_purpose,
+        sizeBytes: stats.size_bytes,
+        structure: stats.structure,
+        techStack: stats.tech_stack
+      });
       setIsSummaryOpen(true);
     } catch (requestError) {
       setIndexError(formatApiError(requestError));
@@ -614,25 +652,23 @@ export function ChatWorkspace() {
               <FolderOpen className="h-5 w-5 text-accent" aria-hidden="true" />
             </div>
 
-            <input className="hidden" multiple onChange={handleFolderChange} ref={folderInputRef} type="file" />
-            <input accept={FILE_ACCEPT} className="hidden" onChange={handleSingleFileChange} ref={fileInputRef} type="file" />
-
             <div className="workspace-actions">
-              <button
-                className="secondary-button"
-                onClick={() => {
-                  folderInputRef.current?.setAttribute("webkitdirectory", "true");
-                  folderInputRef.current?.click();
-                }}
-                type="button"
-              >
+              <label className="secondary-button file-picker-button">
                 <FolderOpen className="h-4 w-4" />
                 Open folder
-              </button>
-              <button className="secondary-button" onClick={() => fileInputRef.current?.click()} type="button">
+                <input
+                  multiple
+                  onChange={handleFolderChange}
+                  ref={folderInputRef}
+                  type="file"
+                  {...({ directory: "", webkitdirectory: "" } as Record<string, string>)}
+                />
+              </label>
+              <label className="secondary-button file-picker-button">
                 <FileCode2 className="h-4 w-4" />
                 Open file
-              </button>
+                <input accept={FILE_ACCEPT} onChange={handleSingleFileChange} ref={fileInputRef} type="file" />
+              </label>
             </div>
 
             <label className="field-label" htmlFor="project-path">
@@ -802,7 +838,7 @@ function ProjectSummaryModal({ onClose, summary }: { onClose: () => void; summar
       <section className="project-modal">
         <header className="modal-header">
           <div>
-            <p className="panel-kicker">{summary.kind === "folder" ? "Project imported" : "File imported"}</p>
+            <p className="panel-kicker">{summary.kind === "folder" ? "Project imported successfully" : "File imported successfully"}</p>
             <h2>{summary.name}</h2>
             <p>{summary.description}</p>
           </div>
@@ -818,9 +854,31 @@ function ProjectSummaryModal({ onClose, summary }: { onClose: () => void; summar
           <span>{summary.chunks.toLocaleString()} chunks</span>
         </div>
 
+        <section className="summary-card summary-overview-card">
+          <h3>Project overview</h3>
+          {summary.path ? <p className="summary-path">{summary.path}</p> : null}
+          <p>{summary.purpose}</p>
+        </section>
+
         <div className="summary-grid">
           <section className="summary-card">
-            <h3>Language mix</h3>
+            <h3>Technology stack</h3>
+            <div className="tag-row">
+              {(summary.techStack.length ? summary.techStack : ["Source code"]).map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+          </section>
+          <section className="summary-card">
+            <h3>Architecture</h3>
+            <ul className="compact-list">
+              {(summary.architecture.length ? summary.architecture : ["General software workspace"]).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </section>
+          <section className="summary-card">
+            <h3>Programming languages</h3>
             <div className="language-chart">
               {summary.languages.map((item) => (
                 <div className="language-row" key={item.label}>
@@ -834,9 +892,9 @@ function ProjectSummaryModal({ onClose, summary }: { onClose: () => void; summar
             </div>
           </section>
           <section className="summary-card">
-            <h3>Structure preview</h3>
+            <h3>Top-level structure</h3>
             <ul className="compact-list structure-list">
-              {summary.structure.map((item) => (
+              {(summary.structure.length ? summary.structure : ["No folder structure available"]).map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>

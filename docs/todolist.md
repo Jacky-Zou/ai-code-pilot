@@ -4,33 +4,34 @@ This board tracks current product and architecture priorities. It intentionally 
 
 Status values: `BACKLOG`, `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 
-## 📋 Backlog
+## Backlog
 
 | ID | Item | Scope | Validation |
 |---|---|---|---|
 | BL-01 | Additional model providers | Add backend providers for Qwen, GLM, Claude, Gemini, Moonshot, and other OpenAI-compatible APIs. | Provider factory tests and live-key smoke tests when credentials are available. |
-| BL-02 | Repository intelligence | Add dependency graph analysis, call graph summaries, framework detection, and security scan hooks. | Focused parser tests and sample-project reports. |
+| BL-02 | Repository intelligence | Add dependency graph analysis, call graph summaries, framework detection, and security scan hooks. | Parser tests and sample-project reports. |
 | BL-03 | Multi-file patch workflow | Extend patch suggestions into reviewable multi-file change plans with diff preview and approval gates. | Patch validation tests and UI review flow. |
 | BL-04 | Production authentication | Replace frontend-local account mocks with backend auth, persistent users, sessions, and profile storage. | Auth API tests, session tests, and frontend integration checks. |
 | BL-05 | Streaming transport | Add SSE or WebSocket streaming for Agent reasoning state, tool-call progress, and partial responses. | Stream contract tests and browser interaction tests. |
 
-## ⏳ To Do
+## To Do
 
 | ID | Item | Scope | Validation |
 |---|---|---|---|
-| TD-01 | Complete frontend visual QA | Have the workspace manually reviewed on common desktop widths after the latest UI refactor. | User browser validation and follow-up bug report triage. |
-| TD-02 | Add frontend regression tests | Add component or E2E coverage for model selection, workspace import, chat submit, modals, and right-rail panels. | `npm run test` or Playwright test suite once configured. |
-| TD-03 | Improve import tree limits | Add explicit caps for very large folders and clearer warning states when browser file enumeration is too large. | Unit tests for summary limits and manual large-folder check. |
-| TD-04 | Document release checklist | Convert final release tasks into a compact v1.0 checklist. | README and docs review. |
+| TD-01 | Frontend regression tests | Add coverage for model selection, workspace import, chat submit, modals, and right-rail panels. | Playwright or component test suite. |
+| TD-02 | Import limits | Add explicit caps for very large folders and clearer warning states for browser file enumeration. | Unit tests and manual large-folder check. |
+| TD-03 | Documentation consolidation | Keep root, backend, and frontend README files synchronized with implementation. | Markdown review and encoding scan. |
+| TD-04 | Release checklist | Convert final release tasks into a compact v1.0 checklist. | README and docs review. |
 
-## 🏃 In Progress
+## In Progress
 
 | ID | Item | Scope | Validation |
 |---|---|---|---|
-| IP-01 | Frontend workspace hardening | Fix Model Provider visibility, Workspace import behavior, chat density, panel boundaries, modal layout, and background consistency. | `npm run typecheck`, `npm run lint`, `npm run build`, and user browser validation. |
-| IP-02 | Documentation audit | Keep README, User Guide, Development Guide, and this TodoList pure English and synchronized with current implementation. | Encoding scan and manual consistency review. |
+| IP-01 | Frontend workspace hardening | Improve Model Center, Workspace import, summary modal, chat composer, visual alignment, and right-rail boundaries. | `npm run typecheck`, `npm run lint`, `npm run build`, and browser validation. |
+| IP-02 | Project structure cleanup | Remove local caches, logs, and generated vector data from the working tree while preserving ignored runtime paths. | Directory audit and `git status`. |
+| IP-03 | Documentation audit | Keep Markdown assets pure English, consistent, and synchronized with the actual codebase. | Encoding scan and manual consistency review. |
 
-## ✅ Done
+## Done
 
 | ID | Item | Result | Validation |
 |---|---|---|---|

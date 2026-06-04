@@ -47,12 +47,30 @@ class ProjectIndexRequest(BaseModel):
     project_path: str = Field(min_length=1)
 
 
+class ProjectLanguageSummary(BaseModel):
+    """Language distribution entry for an indexed project."""
+
+    label: str
+    files: int = Field(ge=0)
+    percent: int = Field(ge=0, le=100)
+
+
 class ProjectIndexResponse(BaseModel):
     """Summary returned after indexing a project for retrieval."""
 
     status: Literal["success"] = "success"
     indexed_files: int = Field(ge=0)
     chunks: int = Field(ge=0)
+    project_name: str = ""
+    project_path: str = ""
+    size_bytes: int = Field(default=0, ge=0)
+    line_count: int = Field(default=0, ge=0)
+    languages: list[ProjectLanguageSummary] = Field(default_factory=list)
+    tech_stack: list[str] = Field(default_factory=list)
+    architecture: list[str] = Field(default_factory=list)
+    structure: list[str] = Field(default_factory=list)
+    summary: str = ""
+    likely_purpose: str = ""
 
 
 class ProjectSearchRequest(BaseModel):

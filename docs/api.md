@@ -32,7 +32,7 @@ http://localhost:8000/openapi.json
 | `POST` | `/api/projects/index` | Build or refresh the RAG index for a local project |
 | `POST` | `/api/projects/search` | Search the current project index for relevant code chunks |
 
-## Health Check ✅
+## Health Check
 
 ```http
 GET /api/health
@@ -111,7 +111,7 @@ Response:
 }
 ```
 
-## Project Index 🧭
+## Project Index
 
 ```http
 POST /api/projects/index
@@ -132,7 +132,28 @@ Response:
 {
   "status": "success",
   "indexed_files": 32,
-  "chunks": 128
+  "chunks": 128,
+  "project_name": "AICodePilot",
+  "project_path": "/workspace/AICodePilot",
+  "size_bytes": 420000,
+  "line_count": 12500,
+  "languages": [
+    {
+      "label": "Python",
+      "files": 42,
+      "percent": 53
+    },
+    {
+      "label": "TypeScript",
+      "files": 18,
+      "percent": 23
+    }
+  ],
+  "tech_stack": ["Python", "FastAPI", "React", "Next.js", "RAG", "LLM Agent"],
+  "architecture": ["Backend service layer", "Frontend workspace application", "Agent planner/executor core"],
+  "structure": ["backend/ (40 files)", "frontend/ (24 files)", "docs/ (9 files)"],
+  "summary": "AICodePilot contains 32 indexed source/documentation files and 128 retrieval chunks.",
+  "likely_purpose": "This project appears to be organized for codebase analysis, development assistance, API services, and documentation workflows."
 }
 ```
 
@@ -141,8 +162,9 @@ Notes:
 - `project_path` must be a non-empty string.
 - The backend scans safe text/code files and ignores irrelevant directories.
 - Chunks are stored in the configured vector store path.
+- Project summary metadata is deterministic and does not require an additional LLM call.
 
-## Project Search 🔎
+## Project Search
 
 ```http
 POST /api/projects/search

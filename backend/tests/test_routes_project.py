@@ -44,11 +44,15 @@ def test_project_index_route_calls_retriever(tmp_path: Path) -> None:
 
     assert response.status_code == 200
     assert fake_retriever.index_calls == [str(tmp_path.resolve())]
-    assert response.json() == {
-        "status": "success",
-        "indexed_files": 3,
-        "chunks": 7,
-    }
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["indexed_files"] == 3
+    assert data["chunks"] == 7
+    assert data["project_name"] == tmp_path.name
+    assert data["size_bytes"] == 0
+    assert data["line_count"] == 0
+    assert data["languages"] == []
+    assert data["summary"]
 
 
 def test_project_search_route_returns_retrieved_chunks() -> None:

@@ -47,12 +47,27 @@ def test_chat_response_defaults_lists() -> None:
 
 def test_project_index_schema() -> None:
     request = ProjectIndexRequest(project_path="/tmp/project")
-    response = ProjectIndexResponse(indexed_files=3, chunks=8)
+    response = ProjectIndexResponse(
+        indexed_files=3,
+        chunks=8,
+        project_name="project",
+        size_bytes=1024,
+        line_count=40,
+        languages=[{"label": "Python", "files": 2, "percent": 67}],
+        tech_stack=["Python"],
+        architecture=["Backend service layer"],
+        structure=["backend/ (2 files)"],
+        summary="Indexed project.",
+        likely_purpose="Software project.",
+    )
 
     assert request.project_path == "/tmp/project"
     assert response.status == "success"
     assert response.indexed_files == 3
     assert response.chunks == 8
+    assert response.languages[0].label == "Python"
+    assert response.size_bytes == 1024
+    assert response.line_count == 40
 
 
 def test_project_search_schema_validates_top_k() -> None:

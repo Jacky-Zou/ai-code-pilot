@@ -1,8 +1,8 @@
 # User Guide
 
-AICodePilot helps developers inspect unfamiliar projects, ask codebase questions, search implementation details, review Agent tool calls, and inspect the code evidence used in each answer.
+AICodePilot helps developers inspect unfamiliar projects, ask codebase questions, search implementation details, review Agent tool calls, and inspect code evidence.
 
-## 🚀 Start The App
+## Start The App
 
 Start the backend:
 
@@ -26,29 +26,30 @@ cd frontend
 npm run start:fresh
 ```
 
-Open the web workspace:
+Open:
 
 ```text
 http://127.0.0.1:3000
 ```
 
-## 🧭 Workspace Layout
+## Workspace Layout
 
 The interface uses a three-column engineering workspace:
 
-- **Left rail**: Model Provider and Workspace management.
+- **Left rail**: Model Center and Workspace management.
 - **Center**: Agent Chat with quick actions, Markdown answers, code blocks, and the message composer.
 - **Right rail**: Agent Steps and Code Evidence for the latest response.
 
 Each panel has bounded scrolling so long messages, tool results, paths, and snippets stay inside their own surfaces.
 
-## 🧠 Model Provider
+## Model Center
 
-The Model Provider panel is always visible in the left rail. It contains:
+The Model Center supports:
 
-- Provider dropdown.
-- Model dropdown.
-- Capability cards for the selected provider.
+- Domestic and global provider source tabs.
+- Provider cards with logo marks and provider descriptions.
+- Model selection for the selected provider.
+- Disabled roadmap providers for Qwen, GLM, Claude, Gemini, and Moonshot.
 
 Available real backend providers:
 
@@ -57,29 +58,47 @@ Available real backend providers:
 | DeepSeek | `deepseek-v4-pro` | Available |
 | OpenAI | `gpt-5.2` | Available |
 
-Planned providers such as GLM, Qwen, and Claude are shown as disabled future integration targets.
+## Workspace Management
 
-## 📁 Workspace Management
+The Workspace panel supports three workflows:
 
-The Workspace panel supports three related workflows:
+1. **Open folder**: select a local project folder in the browser, validate extensions, build a tree preview, and show a local Project Summary modal.
+2. **Open file**: select a single supported code file, validate its extension, and show file size and line count in the Project Summary modal.
+3. **Index workspace**: send a backend-visible path to `/api/projects/index` so the backend can build the RAG index and return project summary metadata.
 
-1. **Open folder**: select a local project folder in the browser, validate file extensions, build a tree preview, and show a local import summary.
-2. **Open file**: select a single supported code file, validate its extension, and show file size and line count in the summary modal.
-3. **Index codebase**: send a backend-visible path to `/api/projects/index` so the backend can build the RAG index.
-
-Supported file extensions include:
+Supported file extensions:
 
 ```text
 .c .cpp .css .go .html .java .js .json .jsx .md .py .rs .scss .sh .ts .tsx .txt .yaml .yml
 ```
 
-Unsupported files such as `.doc`, `.docx`, `.pdf`, and `.exe` are blocked before import. The UI shows a modal explaining that the selected format is not supported.
+Unsupported files such as `.doc`, `.docx`, `.pdf`, `.exe`, archives, and binary files are blocked before import.
 
-## 🐳 Docker Path Rules
+## Project Summary
+
+The Project Summary modal is designed to confirm that import or indexing succeeded and to orient the user before chatting with the Agent.
+
+It displays:
+
+- Project or file name.
+- Backend-visible path when available.
+- File count.
+- Project size.
+- Code line count.
+- RAG chunk count.
+- Programming language composition and percentages.
+- Technology stack.
+- High-level architecture.
+- Top-level structure.
+- A concise project purpose summary.
+
+For browser folder/file import, metadata is computed in the browser. For backend path indexing, metadata is returned by the FastAPI project index endpoint.
+
+## Docker Path Rules
 
 When running with Docker, the browser runs on the host machine while the backend runs inside a Linux container. Browser folder import can preview local metadata, but backend indexing requires a path visible to the backend container.
 
-Use these environment variables to mount host projects into the backend:
+Use these environment variables:
 
 ```env
 PROJECTS_HOST_ROOT=D:/code/my_projects
@@ -87,24 +106,14 @@ PROJECTS_CONTAINER_ROOT=/workspace
 NEXT_PUBLIC_DEFAULT_PROJECT_PATH=/workspace
 ```
 
-Then enter either:
+Then enter either a host path under `PROJECTS_HOST_ROOT` or the mapped container path under `/workspace`.
 
-```text
-D:/code/my_projects/AI_Projects/AICodePilot
-```
-
-or:
-
-```text
-/workspace/AI_Projects/AICodePilot
-```
-
-## 💬 Chat Workflow
+## Chat Workflow
 
 1. Select a supported provider and model.
-2. Open a project folder or code file if you want a frontend preview.
+2. Open a project folder or code file if you want a local preview.
 3. Enter a backend-visible project path.
-4. Click **Index codebase**.
+4. Click **Index workspace**.
 5. Ask a codebase question in Agent Chat.
 6. Use `Shift + Enter` for line breaks and `Enter` to send.
 7. Review the final answer, Agent Steps, and Code Evidence.
@@ -120,49 +129,37 @@ Analyze this error log and suggest a fix.
 Generate tests for the Agent executor.
 ```
 
-## 🧩 Quick Actions
+## Agent Steps
 
-When the chat is empty, quick action cards appear in the conversation area. They replace the previous standalone capability entry panel and keep suggested workflows close to the chat context.
+The right-side Agent Steps panel shows the latest request state:
 
-Current quick action categories:
+- Waiting state when no request is active.
+- Thinking state while the request is running.
+- Tool-call entries after the backend returns executed tools.
+- Outcome summaries such as match counts, returned chunks, or errors.
 
-- Architecture analysis.
-- Bug investigation.
-- Test generation.
-- Documentation drafting.
+The current backend returns results after completion. True token-level streaming remains a roadmap item.
 
-## 🔎 Agent Steps
+## Code Evidence
 
-The right-side Agent Steps panel shows a collapsible timeline for the latest request:
-
-- Thinking state while a request is running.
-- Tool call entries such as `search_text`, `read_file`, `project_tree`, or `retrieve_code`.
-- Tool outcomes such as match counts, returned chunks, or errors.
-
-The current backend returns request results after completion. The UI mirrors active request state and final tool calls, while true token-level streaming remains a future enhancement.
-
-## 📌 Code Evidence
-
-The Code Evidence panel shows the concrete files and snippets used by the Agent answer:
+The Code Evidence panel shows:
 
 - File path.
 - Line number when available.
 - Highlighted code snippet.
 - Copy action for each snippet.
 
-Evidence cards are intentionally compact and bounded to keep long file paths and code lines from breaking the layout.
+## Account UI
 
-## 👤 Account UI
+The current login, registration, profile, captcha, avatar upload, password reset, and session flows are frontend-local product mocks. They validate the product workflow but are not production authentication.
 
-The current login, registration, profile, captcha, avatar upload, password reset, and session flows are frontend-local product mocks. They are useful for validating the application experience, but they are not a production authentication system yet.
-
-## 🌗 Theme
+## Theme
 
 The UI supports light and dark themes. Light mode is the default. Theme preference is stored in browser `localStorage`.
 
-## ⚠️ Current Boundaries
+## Current Boundaries
 
 - Browser file import cannot grant backend access to arbitrary local files.
 - Real backend authentication is not implemented yet.
-- GLM, Qwen, Claude, Gemini, Moonshot, and other providers need backend provider modules before they can send real model requests.
-- Streaming Agent step updates are represented by request state today and require backend SSE or WebSocket support for true real-time updates.
+- Qwen, GLM, Claude, Gemini, Moonshot, and other providers require backend provider modules before real model calls.
+- Streaming Agent step updates require backend SSE or WebSocket support.

@@ -127,11 +127,16 @@ def test_project_index_endpoint_returns_indexing_stats(tmp_path: Path) -> None:
 
     assert response.status_code == 200
     assert fake_retriever.index_calls == [str(tmp_path.resolve())]
-    assert response.json() == {
-        "status": "success",
-        "indexed_files": 2,
-        "chunks": 5,
-    }
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["indexed_files"] == 2
+    assert data["chunks"] == 5
+    assert data["project_name"] == tmp_path.name
+    assert "size_bytes" in data
+    assert "line_count" in data
+    assert "tech_stack" in data
+    assert "architecture" in data
+    assert data["summary"]
 
 
 def test_project_search_endpoint_returns_code_results() -> None:

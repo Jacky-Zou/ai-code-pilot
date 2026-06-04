@@ -42,6 +42,16 @@ export interface ProjectIndexResponse {
   status: "success";
   indexed_files: number;
   chunks: number;
+  project_name: string;
+  project_path: string;
+  size_bytes: number;
+  line_count: number;
+  languages: Array<{ label: string; files: number; percent: number }>;
+  tech_stack: string[];
+  architecture: string[];
+  structure: string[];
+  summary: string;
+  likely_purpose: string;
 }
 
 export interface ProjectSearchRequest {

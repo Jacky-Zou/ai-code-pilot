@@ -1,21 +1,44 @@
 # AICodePilot
 
-AICodePilot is an AI coding assistant for codebase understanding, semantic search, code questions, log analysis, tool calling, and development workflow support.
+AICodePilot is an AI coding assistant for codebase understanding, semantic search, log analysis, tool calling, patch suggestions, and developer workflow support.
 
-The project is intentionally built as an engineering-grade LLM Agent system rather than a simple chat demo. It includes a handwritten Agent execution loop, a safe tool layer, RAG retrieval, multi-provider LLM abstraction, FastAPI APIs, a Next.js workspace UI, tests, Docker deployment, and project documentation.
+The project is built as an engineering-grade LLM Agent system rather than a simple chat demo. It includes a handwritten Agent loop, a safe tool layer, RAG retrieval, multi-provider LLM abstraction, FastAPI APIs, a Next.js workspace UI, tests, Docker deployment, and documentation.
 
-## 🚀 Features
+## Features
 
-- Handwritten Agent loop with structured tool planning, tool execution, and final answer synthesis.
-- Multi-provider LLM layer with OpenAI as the default provider and DeepSeek support.
-- Safe codebase tools for file listing, project tree inspection, file reading, text search, log analysis, command execution, and patch suggestion generation.
-- RAG pipeline with project scanning, line-based chunking, embeddings, vector storage, and Top-K code retrieval.
-- FastAPI backend with health, chat, project indexing, and project search endpoints.
-- Next.js frontend with Model Provider, Workspace management, Agent Chat, Agent Steps, and Code Evidence panels.
+- Handwritten Agent loop with structured planning, tool execution, and final answer synthesis.
+- Multi-provider LLM layer with OpenAI and DeepSeek support.
+- Safe tools for file listing, project tree inspection, file reading, text search, log analysis, command execution, and patch suggestions.
+- RAG pipeline with project scanning, line-based chunking, embeddings, vector storage, and Top-K retrieval.
+- FastAPI backend for health, chat, project indexing, and project search.
+- Next.js frontend with Model Center, Workspace management, Agent Chat, Agent Steps, Code Evidence, and Project Summary.
 - Docker Compose deployment for backend and frontend.
-- CI-ready quality gates for tests, linting, formatting, and typing.
+- CI-ready gates for tests, linting, formatting, and typing.
 
-## 🧱 Tech Stack
+## Architecture
+
+```text
+Frontend Workspace
+  -> FastAPI API
+  -> Agent Planner / Executor
+  -> LLM Provider Factory
+  -> Tool Registry
+  -> RAG Retriever
+  -> Local Codebase
+```
+
+Key modules:
+
+| Area | Path | Responsibility |
+|---|---|---|
+| Agent | `backend/app/agent` | Planner, executor, prompts, schemas, patch helpers |
+| Tools | `backend/app/tools` | Safe file/search/log/shell tools and registry |
+| LLM | `backend/app/llm` | Provider abstraction, OpenAI, DeepSeek, HTTP client |
+| RAG | `backend/app/rag` | Indexer, chunker, embeddings, vector store, retriever |
+| API | `backend/app/api` | FastAPI routes and response schemas |
+| Frontend | `frontend/components` | Workspace UI, provider selector, timeline, evidence |
+
+## Tech Stack
 
 | Area | Technology |
 |---|---|
@@ -27,9 +50,9 @@ The project is intentionally built as an engineering-grade LLM Agent system rath
 | Quality | pytest, ruff, black, mypy, ESLint, TypeScript |
 | Deployment | Docker, docker-compose, environment-based configuration |
 
-## 🧠 Model Providers
+## Model Providers
 
-Default provider:
+Default OpenAI configuration:
 
 ```env
 LLM_PROVIDER=openai
@@ -37,7 +60,7 @@ LLM_MODEL=gpt-5.2
 OPENAI_MODEL=gpt-5.2
 ```
 
-DeepSeek provider:
+DeepSeek configuration:
 
 ```env
 LLM_PROVIDER=deepseek
@@ -45,30 +68,32 @@ LLM_MODEL=deepseek-v4-pro
 DEEPSEEK_MODEL=deepseek-v4-pro
 ```
 
-Runtime API requests can override provider and model per call. The backend currently supports real requests for `openai` and `deepseek`. GLM, Qwen, and Claude are represented in the UI as disabled future integration targets until backend provider modules are implemented.
+Runtime API requests can override provider and model per request. The backend currently supports real calls for `openai` and `deepseek`. Qwen, GLM, Claude, Gemini, and Moonshot remain roadmap providers until backend modules are added.
 
-## 🖥️ Frontend Workspace
+## Frontend Workspace
 
-The web UI is organized as a professional three-column AI code workspace:
+The UI is a three-column AI code workspace:
 
-- **Model Provider**: visible provider dropdown, model dropdown, and model capability list.
-- **Workspace**: folder import, single code-file import, backend-visible path input, file whitelist validation, workspace tree preview, and indexing action.
-- **Agent Chat**: fixed-height central chat surface with compact bubbles, Markdown rendering, highlighted code blocks, quick actions, avatars, and multiline input.
-- **Agent Steps**: collapsible timeline for thinking, tool calls, tool outcomes, and request state.
-- **Code Evidence**: bounded evidence cards with file paths, line numbers, and highlighted snippets.
-- **Project Summary**: import/indexing modal with name, file size, line count, language mix, structure preview, and chunk metrics.
+- **Model Center**: source tabs for domestic/global providers, provider cards with logo marks, and model selection.
+- **Workspace**: open folder, open code file, backend-visible path indexing, extension whitelist validation, and tree preview.
+- **Agent Chat**: fixed-height chat surface with Markdown rendering, compact bubbles, quick actions, avatars, and multiline input.
+- **Agent Steps**: timeline-style request state for thinking, tool calls, and evidence generation.
+- **Code Evidence**: bounded evidence cards with paths, line numbers, and highlighted snippets.
+- **Project Summary**: import/indexing modal with file count, project size, line count, language composition, tech stack, architecture, structure, and purpose summary.
 
-Browser file access is used for frontend previews only. Real backend indexing still requires a backend-visible path.
+Browser file access is used for local preview only. Real RAG indexing requires a backend-visible path.
 
-## ⚙️ Getting Started
+## Getting Started
 
-Copy the environment template and add real API keys only to `.env`:
+Copy the environment template:
 
 ```bash
 cp .env.example .env
 ```
 
-Install and start the backend:
+Add real API keys only to `.env`. The file is ignored by Git.
+
+Start the backend:
 
 ```bash
 cd backend
@@ -84,7 +109,7 @@ Open the API docs:
 http://localhost:8000/docs
 ```
 
-Install and start the frontend in a second terminal:
+Start the frontend in a second terminal:
 
 ```bash
 cd frontend
@@ -99,27 +124,28 @@ cd frontend
 npm run start:fresh
 ```
 
-Open the web workspace:
+Open:
 
 ```text
 http://127.0.0.1:3000
 ```
 
-The frontend reads `NEXT_PUBLIC_API_BASE_URL` when it is set and otherwise falls back to `http://localhost:8000`.
+## Docker
 
-## 🐳 Docker
-
-Run the full stack from the repository root:
+Run the full stack:
 
 ```bash
 docker compose up --build
 ```
 
-The backend runs on `http://localhost:8000`; the frontend runs on `http://localhost:3000`.
+Services:
 
-### Docker Project Paths
+| Service | URL |
+|---|---|
+| Backend | `http://localhost:8000` |
+| Frontend | `http://localhost:3000` |
 
-The backend can only inspect paths visible inside its container. Docker Compose mounts `PROJECTS_HOST_ROOT` into `PROJECTS_CONTAINER_ROOT` as read-only workspace storage:
+For Docker project indexing, mount a host workspace into the backend container:
 
 ```env
 PROJECTS_HOST_ROOT=D:/code/my_projects
@@ -127,15 +153,13 @@ PROJECTS_CONTAINER_ROOT=/workspace
 NEXT_PUBLIC_DEFAULT_PROJECT_PATH=/workspace
 ```
 
-With that mapping, a host path such as `D:/code/my_projects/demo-api` can be resolved by the backend to `/workspace/demo-api`. You may also type the container path directly in the Workspace panel.
-
-## 🔌 API Overview
+## API Overview
 
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/api/health` | Check service status |
 | `POST` | `/api/chat` | Ask the Agent a codebase question |
-| `POST` | `/api/projects/index` | Index a backend-visible project path |
+| `POST` | `/api/projects/index` | Index a backend-visible project path and return project summary metadata |
 | `POST` | `/api/projects/search` | Search indexed code chunks |
 
 Example chat request:
@@ -149,11 +173,9 @@ Example chat request:
 }
 ```
 
-See [API](docs/api.md) for request and response details.
+## Validation
 
-## 🧪 Validation
-
-Backend quality gates:
+Backend:
 
 ```bash
 pytest backend/tests
@@ -162,7 +184,7 @@ black --check .
 mypy backend/app
 ```
 
-Frontend quality gates:
+Frontend:
 
 ```bash
 cd frontend
@@ -171,17 +193,7 @@ npm run lint
 npm run build
 ```
 
-## 🗺️ Roadmap
-
-Current priorities are tracked in [TodoList](docs/todolist.md). The long-term direction is:
-
-- Harden the streaming Agent UI state model.
-- Add real backend authentication and user profiles.
-- Implement additional model providers such as Qwen, GLM, Claude, Gemini, and Moonshot.
-- Add richer repository intelligence: dependency graphs, test generation, security scanning, and multi-file patch workflows.
-- Prepare a polished v1.0 release package.
-
-## 📚 Documentation
+## Documentation
 
 - [Architecture](docs/architecture.md)
 - [Agent Design](docs/agent-design.md)
@@ -194,6 +206,6 @@ Current priorities are tracked in [TodoList](docs/todolist.md). The long-term di
 - [Resume Guide](docs/resume.md)
 - [TodoList](docs/todolist.md)
 
-## 📄 License
+## License
 
 This project is released under the MIT License. See [LICENSE](LICENSE).
