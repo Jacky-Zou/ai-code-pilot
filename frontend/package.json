@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:fresh": "next build && next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },

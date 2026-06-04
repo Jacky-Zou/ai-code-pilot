@@ -92,6 +92,13 @@ npm install
 npm run dev
 ```
 
+For production-mode local review after UI changes:
+
+```bash
+cd frontend
+npm run start:fresh
+```
+
 Open the web workspace:
 
 ```text

@@ -52,6 +52,15 @@ http://localhost:3000
 
 The frontend reads `NEXT_PUBLIC_API_BASE_URL`. If it is not set, it falls back to `http://localhost:8000`.
 
+For production-mode local review after frontend code changes, rebuild before starting:
+
+```bash
+cd frontend
+npm run start:fresh
+```
+
+`npm run start` serves the existing `.next` production build. If the old process is still running, stop it before reviewing a new build.
+
 ## Docker Compose
 
 From the repository root:
