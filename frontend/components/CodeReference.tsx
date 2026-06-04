@@ -7,23 +7,6 @@ export interface CodeReferenceProps {
   references: CodeReferenceItem[];
 }
 
-const LABELS = {
-  zh: {
-    title: "代码证据",
-    subtitle: "Agent 回答所依据的核心文件、行号和片段。",
-    empty: "还没有代码证据。",
-    referenced: "Agent 引用片段",
-    score: "相关度"
-  },
-  en: {
-    title: "Code Evidence",
-    subtitle: "Files, line numbers, and snippets used by the Agent.",
-    empty: "No code evidence yet.",
-    referenced: "Referenced by Agent",
-    score: "score"
-  }
-};
-
 function formatLocation(reference: CodeReferenceItem): string {
   if (reference.line_number === null || reference.line_number === undefined) return reference.file_path;
   return `${reference.file_path}:${reference.line_number}`;
@@ -35,37 +18,35 @@ function formatScore(score: number | null): string | null {
 }
 
 function excerptSnippet(snippet: string | null): string {
-  if (!snippet) return "";
+  if (!snippet) return "Referenced by Agent";
   const lines = snippet.split(/\r?\n/).filter(Boolean);
   return lines.slice(0, 8).join("\n");
 }
 
-export function CodeReference({ language = "zh", references }: CodeReferenceProps) {
-  const labels = LABELS[language];
-
+export function CodeReference({ references }: CodeReferenceProps) {
   return (
     <section className="panel-card insight-panel">
       <div className="panel-heading">
         <div>
           <p className="panel-kicker">Evidence</p>
-          <h2>{labels.title}</h2>
+          <h2>Code Evidence</h2>
         </div>
         <Search className="h-5 w-5 text-accent" aria-hidden="true" />
       </div>
 
-      <p className="panel-subtitle">{labels.subtitle}</p>
+      <p className="panel-subtitle">Files, line numbers, and snippets used by the Agent.</p>
 
       {references.length === 0 ? (
-        <div className="empty-state">
+        <div className="timeline-skeleton">
           <Braces className="h-4 w-4" aria-hidden="true" />
-          {labels.empty}
+          <span>No code evidence yet.</span>
         </div>
       ) : null}
 
       <div className="code-evidence-list">
         {references.map((reference, index) => {
           const score = formatScore(reference.score);
-          const snippet = excerptSnippet(reference.snippet) || labels.referenced;
+          const snippet = excerptSnippet(reference.snippet);
           const location = formatLocation(reference);
 
           return (
@@ -76,11 +57,7 @@ export function CodeReference({ language = "zh", references }: CodeReferenceProp
                     <Braces className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
                     <span>{location}</span>
                   </div>
-                  {score ? (
-                    <div className="mt-1 text-xs text-muted">
-                      {labels.score} {score}
-                    </div>
-                  ) : null}
+                  {score ? <div className="mt-1 text-xs text-muted">score {score}</div> : null}
                 </div>
                 <button
                   className="icon-button compact"

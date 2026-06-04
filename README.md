@@ -1,102 +1,74 @@
-﻿# AICodePilot
+# AICodePilot
 
-AICodePilot is an AI coding assistant for codebase understanding and development workflows. It is designed as a hands-on LLM Agent project with tool calling, semantic retrieval, multiple model providers, a FastAPI backend, a React/Next.js frontend, Docker deployment, and complete engineering documentation.
+AICodePilot is an AI coding assistant for codebase understanding, semantic search, code questions, log analysis, tool calling, and development workflow support.
 
-Full title: **AICodePilot: LLM Agent based AI codebase understanding and development assistant**.
+The project is intentionally built as an engineering-grade LLM Agent system rather than a simple chat demo. It includes a handwritten Agent execution loop, a safe tool layer, RAG retrieval, multi-provider LLM abstraction, FastAPI APIs, a Next.js workspace UI, tests, Docker deployment, and project documentation.
 
-## Core Features
-- Codebase structure analysis and project file exploration.
-- Safe local file reading and text search tools.
-- Hand-written Agent execution loop with structured tool calling.
-- RAG-based semantic code retrieval with file path and line references.
-- Multi-provider LLM abstraction with OpenAI as the default and DeepSeek support.
-- FastAPI service layer for Agent and project indexing APIs.
-- Web UI for provider selection, project indexing, chat, tool-call timeline, and code references.
-- Advanced development tools including log analysis, safe command execution, and patch suggestions.
-- Docker and docker-compose deployment.
+## 🚀 Features
 
-## Tech Stack
+- Handwritten Agent loop with structured tool planning, tool execution, and final answer synthesis.
+- Multi-provider LLM layer with OpenAI as the default provider and DeepSeek support.
+- Safe codebase tools for file listing, project tree inspection, file reading, text search, log analysis, command execution, and patch suggestion generation.
+- RAG pipeline with project scanning, line-based chunking, embeddings, vector storage, and Top-K code retrieval.
+- FastAPI backend with health, chat, project indexing, and project search endpoints.
+- Next.js frontend with Model Provider, Workspace management, Agent Chat, Agent Steps, and Code Evidence panels.
+- Docker Compose deployment for backend and frontend.
+- CI-ready quality gates for tests, linting, formatting, and typing.
 
-Backend:
+## 🧱 Tech Stack
 
-- Python
-- FastAPI
-- Pydantic and pydantic-settings
-- httpx
-- pytest
-- ruff, black, mypy
+| Area | Technology |
+|---|---|
+| Backend | Python, FastAPI, Pydantic, pydantic-settings, httpx, Uvicorn |
+| Agent | Custom planner/executor, tool registry, prompt protocol, bounded memory |
+| Retrieval | OpenAI embeddings, local hash embeddings for tests, Chroma vector store |
+| Frontend | Next.js 15, React 18, TypeScript, Tailwind CSS, lucide-react |
+| Markdown | react-markdown, remark-gfm, rehype-highlight |
+| Quality | pytest, ruff, black, mypy, ESLint, TypeScript |
+| Deployment | Docker, docker-compose, environment-based configuration |
 
-AI and retrieval:
+## 🧠 Model Providers
 
-- LLM API
-- Tool Calling
-- Prompt Engineering
-- Embedding
-- RAG
-- Chroma vector database
-
-Frontend:
-
-- React
-- Next.js
-- Tailwind CSS
-- shadcn/ui
-- Monaco Editor for future code display
-
-Deployment:
-
-- Docker
-- docker-compose
-- `.env` based configuration
-
-## Model Providers
-
-AICodePilot uses OpenAI / ChatGPT by default:
+Default provider:
 
 ```env
 LLM_PROVIDER=openai
 LLM_MODEL=gpt-5.2
+OPENAI_MODEL=gpt-5.2
 ```
 
-DeepSeek is supported through the same provider abstraction:
+DeepSeek provider:
 
 ```env
 LLM_PROVIDER=deepseek
 LLM_MODEL=deepseek-v4-pro
+DEEPSEEK_MODEL=deepseek-v4-pro
 ```
 
-API requests may override the default provider and model per request.
+Runtime API requests can override provider and model per call. The backend currently supports real requests for `openai` and `deepseek`. GLM, Qwen, and Claude are represented in the UI as disabled future integration targets until backend provider modules are implemented.
 
-## Configuration Quality
-Phase 6 starts by tightening runtime configuration validation:
+## 🖥️ Frontend Workspace
 
-- `LLM_PROVIDER` must be `openai` or `deepseek`.
-- `EMBEDDING_PROVIDER` must be `openai` or `local`.
-- `VECTOR_STORE_BACKEND` must be `chroma`, `json`, or `memory`.
-- `LOG_LEVEL` must be one of `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`.
-- OpenAI and DeepSeek base URLs are normalized and must start with `http://` or `https://`.
-- A blank `LLM_MODEL` falls back to the selected provider default, so provider switching keeps a predictable model.
+The web UI is organized as a professional three-column AI code workspace:
 
-## Roadmap
-1. Project initialization.
-2. Mini Agent CLI with tool calling.
-3. RAG code retrieval.
-4. FastAPI backend APIs.
-5. Web UI with provider and model selection.
-6. Advanced Agent tools and memory.
-7. Engineering quality, tests, linting, and typing.
-8. Docker deployment.
-9. Documentation and resume packaging.
+- **Model Provider**: visible provider dropdown, model dropdown, and model capability list.
+- **Workspace**: folder import, single code-file import, backend-visible path input, file whitelist validation, workspace tree preview, and indexing action.
+- **Agent Chat**: fixed-height central chat surface with compact bubbles, Markdown rendering, highlighted code blocks, quick actions, avatars, and multiline input.
+- **Agent Steps**: collapsible timeline for thinking, tool calls, tool outcomes, and request state.
+- **Code Evidence**: bounded evidence cards with file paths, line numbers, and highlighted snippets.
+- **Project Summary**: import/indexing modal with name, file size, line count, language mix, structure preview, and chunk metrics.
 
-## Quick Start
+Browser file access is used for frontend previews only. Real backend indexing still requires a backend-visible path.
 
-Copy the example environment file first and put real API keys only in `.env`:
+## ⚙️ Getting Started
+
+Copy the environment template and add real API keys only to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Run the backend locally:
+Install and start the backend:
 
 ```bash
 cd backend
@@ -106,13 +78,13 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Open:
+Open the API docs:
 
 ```text
 http://localhost:8000/docs
 ```
 
-Run the web frontend in a second terminal:
+Install and start the frontend in a second terminal:
 
 ```bash
 cd frontend
@@ -120,34 +92,27 @@ npm install
 npm run dev
 ```
 
-Open:
+Open the web workspace:
 
 ```text
-http://localhost:3000
+http://127.0.0.1:3000
 ```
 
-The frontend uses `NEXT_PUBLIC_API_BASE_URL` when it is set, and falls back to `http://localhost:8000`.
+The frontend reads `NEXT_PUBLIC_API_BASE_URL` when it is set and otherwise falls back to `http://localhost:8000`.
 
-Docker one-command demo from the repository root:
+## 🐳 Docker
+
+Run the full stack from the repository root:
 
 ```bash
 docker compose up --build
 ```
 
-If Docker Hub is unreliable, override the base images with reachable mirrors:
+The backend runs on `http://localhost:8000`; the frontend runs on `http://localhost:3000`.
 
-```powershell
-$env:PYTHON_IMAGE="mirror.gcr.io/library/python:3.10-slim"
-$env:NODE_IMAGE="mirror.gcr.io/library/node:20-alpine"
-docker compose up --build
-```
+### Docker Project Paths
 
-Backend runs on `http://localhost:8000`; frontend runs on `http://localhost:3000`.
-
-### Docker project paths
-
-The backend can only inspect paths that are visible inside its container. Compose mounts
-`PROJECTS_HOST_ROOT` into `PROJECTS_CONTAINER_ROOT` as read-only project workspace storage:
+The backend can only inspect paths visible inside its container. Docker Compose mounts `PROJECTS_HOST_ROOT` into `PROJECTS_CONTAINER_ROOT` as read-only workspace storage:
 
 ```env
 PROJECTS_HOST_ROOT=D:/code/my_projects
@@ -155,118 +120,42 @@ PROJECTS_CONTAINER_ROOT=/workspace
 NEXT_PUBLIC_DEFAULT_PROJECT_PATH=/workspace
 ```
 
-With that mapping, a host path such as `D:/code/my_projects/demo-api` is automatically
-resolved by the backend to `/workspace/demo-api`. You may also type the container path
-directly in the Web UI.
+With that mapping, a host path such as `D:/code/my_projects/demo-api` can be resolved by the backend to `/workspace/demo-api`. You may also type the container path directly in the Workspace panel.
 
-## Mini Agent CLI
-
-Phase 1 provides a command-line Mini Agent with:
-
-- OpenAI and DeepSeek provider abstraction.
-- Structured JSON tool-calling protocol.
-- Safe `list_files`, `read_file`, and `search_text` tools.
-- Tool call recording and code reference extraction.
-
-Run the CLI from the backend directory:
-
-```bash
-cd backend
-python -m app.main --project-path ..
-```
-
-Example questions:
-
-```text
-List Python files in this project
-Read README.md
-Search FastAPI in this project
-```
-
-## RAG Code Retrieval
-
-Phase 2 adds a local code retrieval loop:
-
-- `ProjectIndexer` scans safe text/code files.
-- `CodeChunker` creates line-based chunks with file and line metadata.
-- `OpenAIEmbeddingClient` supports production embeddings.
-- `LocalHashEmbeddingClient` supports offline tests and demos.
-- `ChromaVectorStore` is the default vector database backend and persists code indexes under `VECTOR_STORE_PATH`.
-- `retrieve_code` lets the Agent answer code location questions with references.
-
-Example retrieval-oriented questions:
-
-```text
-Where is the Agent execution flow implemented?
-Where is configuration loaded?
-How is the tool registry implemented?
-```
-
-## FastAPI Backend APIs
-
-Phase 3 exposes the Agent and RAG retrieval flow through FastAPI:
+## 🔌 API Overview
 
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/api/health` | Check service status |
 | `POST` | `/api/chat` | Ask the Agent a codebase question |
-| `POST` | `/api/projects/index` | Index a local project for retrieval |
+| `POST` | `/api/projects/index` | Index a backend-visible project path |
 | `POST` | `/api/projects/search` | Search indexed code chunks |
 
 Example chat request:
 
 ```json
 {
-  "message": "Where is the API router implemented?",
-  "project_path": "/path/to/project",
-  "provider": "openai",
-  "model": "gpt-5.2"
+  "message": "Where is the Agent execution flow implemented?",
+  "project_path": "/workspace/AICodePilot",
+  "provider": "deepseek",
+  "model": "deepseek-v4-pro"
 }
 ```
 
-API requests can override the default provider/model per call. Full endpoint schemas, response examples, and error codes are documented in [API](docs/api.md).
+See [API](docs/api.md) for request and response details.
 
-## Web UI Progress
+## 🧪 Validation
 
-中文说明：
-
-- **模型中心**：支持国内/国外模型切换，DeepSeek V4-Pro 为默认国内模型，GPT-5.2 为 OpenAI 选项；GLM、Qwen、Claude 作为待接入模型展示。
-- **代码库导入**：支持打开本地文件夹生成前端摘要，同时保留后端可访问路径输入，用于真实 RAG 索引；Docker 场景需要配置路径映射。
-- **Agent Chat**：固定高度的中心对话区，支持 Markdown、表格、代码块高亮、Shift+Enter 换行、用户/AI 头像和执行摘要折叠。
-- **执行步骤与代码证据**：右侧面板展示工具调用动作、结果、文件路径、行号和核心代码片段，长内容会在面板内部滚动。
-- **登录资料界面**：当前为前端本地演示认证，包含登录、注册、验证码、头像上传、个人资料保存和密码重置入口。
-
-The frontend is now a professional three-column AI code workspace:
-
-- **Model Hub**: domestic/global tabs, provider logos, model descriptions, DeepSeek V4-Pro as the default domestic model, GPT-5.2 as the OpenAI option, and coming-soon cards for GLM, Qwen, and Claude.
-- **Codebase Import**: backend-visible path input, Docker path guidance, local folder picker for browser-authorized metadata preview, and a Project Summary modal after indexing.
-- **Agent Chat**: central fixed-height conversation workspace with AI/user avatars, Markdown + GFM rendering, highlighted code blocks, collapsible execution summary, Shift+Enter multiline input, and bounded scrolling.
-- **Auth UI**: front-end login/register/profile/forgot-password mock with captcha, default avatar, avatar upload, user menu, and local session persistence.
-- **Theme and language**: light/dark theme toggle and Simplified Chinese/English UI switching, with light mode as the default.
-- **Agent Steps and Code Evidence**: readable right-rail panels for tool status, action/outcome summaries, file paths, line numbers, and highlighted evidence snippets.
-
-Current provider boundary: the backend supports OpenAI and DeepSeek. GLM, Qwen, and Claude are displayed as coming-soon frontend options until their backend providers are implemented.
-
-Use the interface in this order:
-
-1. Start the FastAPI backend at `http://localhost:8000`.
-2. Start the frontend at `http://127.0.0.1:3000`.
-3. Sign in with the frontend auth mock, or create a local session with captcha.
-4. Select a supported model card: DeepSeek V4-Pro or GPT-5.2.
-5. Open a local folder for metadata preview or enter a backend-visible project path.
-6. Index the codebase and review the Project Summary modal.
-7. Ask a codebase question in the chat panel.
-8. Review Agent Steps and Code Evidence beside the answer.
-
-Run the frontend:
+Backend quality gates:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+pytest backend/tests
+ruff check .
+black --check .
+mypy backend/app
 ```
 
-Validate the frontend:
+Frontend quality gates:
 
 ```bash
 cd frontend
@@ -275,79 +164,17 @@ npm run lint
 npm run build
 ```
 
-Open:
+## 🗺️ Roadmap
 
-```text
-http://127.0.0.1:3000
-```
+Current priorities are tracked in [TodoList](docs/todolist.md). The long-term direction is:
 
-## Advanced Agent Progress
+- Harden the streaming Agent UI state model.
+- Add real backend authentication and user profiles.
+- Implement additional model providers such as Qwen, GLM, Claude, Gemini, and Moonshot.
+- Add richer repository intelligence: dependency graphs, test generation, security scanning, and multi-file patch workflows.
+- Prepare a polished v1.0 release package.
 
-Phase 5 starts by adding bounded conversation memory:
-
-- Stores recent user, assistant, and tool messages with a conversation id.
-- Trims history by complete user turns so follow-up context stays useful but bounded.
-- Exports role/content messages in the format expected by the LLM provider layer.
-- Keeps system prompts outside rolling memory so tool and safety instructions remain stable.
-
-Phase 5 also adds an `analyze_log(log_text)` tool:
-
-- Counts log levels and normalizes `WARN` to `WARNING`.
-- Extracts error lines, exception names, and Python traceback frames.
-- Returns compact debugging recommendations without executing commands or modifying files.
-
-The `run_command(command, cwd)` tool is implemented with safety boundaries:
-
-- Runs with `shell=False` and blocks shell chaining, pipes, redirects, and command substitution.
-- Restricts `cwd` to the declared project root when `project_path` is provided.
-- Blocks destructive commands such as `rm`, `del`, `format`, `shutdown`, and related aliases.
-- Captures `stdout`, `stderr`, `exit_code`, and timeout state.
-
-Patch suggestions are generated as reviewable unified diffs:
-
-- `PatchSuggestion` stores `file_path`, `diff`, and optional `summary`.
-- `generate_patch_suggestion` compares original and updated text in memory.
-- Patch generation never opens, writes, or mutates target files automatically.
-
-Advanced tools are now connected to the Agent path:
-
-- `analyze_log` and `run_command` are registered in the default `ToolRegistry`.
-- `AgentExecutor` can use optional bounded conversation memory for follow-up context.
-- Patch suggestions returned by tools are validated and forwarded in `AgentResponse`.
-- The advanced tool security model is documented in [Security](docs/security.md).
-
-## Phase Validation
-At the end of each phase, AICodePilot runs a full project sanity check before moving forward:
-
-- Verify the code structure still matches the planned Agent, tools, RAG, API, and docs layout.
-- Run focused tests for the current phase and the full backend test suite.
-- Validate runtime entrypoints such as CLI import, FastAPI app creation, OpenAPI schema, and health route.
-- Update TodoList and related docs after validation passes.
-- Commit and push the completed phase with a Conventional Commit message.
-
-Phase 3 validation confirms the FastAPI backend exposes `/api/health`, `/api/chat`, `/api/projects/index`, and `/api/projects/search` without breaking the Mini Agent or RAG layers.
-
-Phase 4 validation confirms the Next.js frontend builds successfully, renders over HTTP, and keeps the provider selector, project indexing, Agent chat, tool-call timeline, and code reference workflow aligned with the backend APIs.
-
-Phase 5 validation confirms bounded memory, log analysis, safe shell execution, patch suggestions, and advanced tool integration are covered by backend tests, documented security boundaries, frontend type/lint checks, production build, and HTTP smoke testing.
-
-Phase 6 configuration validation confirms settings fail fast for unsupported providers, embedding backends, vector stores, log levels, and invalid base URLs while preserving the OpenAI default and DeepSeek override path.
-
-Phase 6 logging validation confirms backend modules use the shared logger format across Agent execution, API routes, RAG indexing/search, and tool registry creation without logging API keys, full prompts, file contents, or large user payloads.
-
-Phase 6 exception validation confirms API errors keep the existing `error` and `detail` fields while adding stable machine-readable `code` values and optional `request_id` correlation from `X-Request-ID`.
-
-Phase 6 expanded testing adds coverage for the LLM HTTP client, Agent planner, Agent facade, and isolated test vector-store setup so local Chroma state does not leak into regression runs.
-
-Phase 6 lint validation adds a Ruff configuration for correctness-level Python checks and keeps the Ruff cache in a temporary directory to avoid local workspace permission noise.
-
-Phase 6 formatting validation adds a Black configuration, formats backend Python files consistently, and keeps the formatting gate aligned with Ruff's Python 3.10 and line-length settings.
-
-Phase 6 type validation adds a mypy configuration for the backend package, including explicit package-base handling for the `backend/app` layout and a checked Chroma vector-store boundary.
-
-Phase 6 CI validation adds a GitHub Actions workflow draft that runs Ruff, Black, mypy, and backend tests on pushes and pull requests.
-
-## Documentation
+## 📚 Documentation
 
 - [Architecture](docs/architecture.md)
 - [Agent Design](docs/agent-design.md)
@@ -360,6 +187,6 @@ Phase 6 CI validation adds a GitHub Actions workflow draft that runs Ruff, Black
 - [Resume Guide](docs/resume.md)
 - [TodoList](docs/todolist.md)
 
-## License
+## 📄 License
 
 This project is released under the MIT License. See [LICENSE](LICENSE).

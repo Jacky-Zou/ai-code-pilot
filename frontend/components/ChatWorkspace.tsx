@@ -5,20 +5,18 @@
 import {
   AlertCircle,
   Bot,
-  BrainCircuit,
   CheckCircle2,
   ChevronDown,
   Code2,
   Database,
+  FileCode2,
   FolderOpen,
   KeyRound,
-  Languages,
   Loader2,
   LogIn,
   Moon,
   Send,
   Settings,
-  ShieldCheck,
   Sun,
   User,
   UserPlus,
@@ -36,12 +34,13 @@ import {
   indexProject,
   sendChat
 } from "@/lib/api";
-import { ProviderSelector, type Language, type ProviderSelection } from "@/components/ProviderSelector";
 import { CodeReference } from "@/components/CodeReference";
+import { ProviderSelector, type ProviderSelection } from "@/components/ProviderSelector";
 import { ToolCallTimeline } from "@/components/ToolCallTimeline";
 
 type Theme = "light" | "dark";
 type AuthMode = "login" | "register" | "profile" | "forgot";
+type ImportKind = "folder" | "file";
 
 type ChatMessage = {
   id: string;
@@ -56,15 +55,22 @@ type AuthUser = {
   name: string;
 };
 
+type WorkspaceNode = {
+  children?: WorkspaceNode[];
+  name: string;
+  path: string;
+  type: "file" | "folder";
+};
+
 type ProjectSummary = {
-  architecture: string[];
   chunks: number;
   description: string;
   files: number;
+  kind: ImportKind;
   languages: Array<{ label: string; percent: number; value: number }>;
+  lineCount: number;
   name: string;
-  purpose: string;
-  stack: string[];
+  sizeBytes: number;
   structure: string[];
 };
 
@@ -72,18 +78,39 @@ const DEFAULT_PROJECT_PATH = process.env.NEXT_PUBLIC_DEFAULT_PROJECT_PATH ?? "/w
 const DEFAULT_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%232563eb'/%3E%3Ccircle cx='32' cy='24' r='11' fill='white' opacity='.95'/%3E%3Cpath d='M14 54c3.6-11 12.2-16 18-16s14.4 5 18 16' fill='white' opacity='.95'/%3E%3C/svg%3E";
 
+// Keep browser imports scoped to source-like text assets. The backend has its
+// own file safety layer; this frontend whitelist prevents unsupported binary or
+// office formats from entering the Workspace preview flow in the first place.
+const SUPPORTED_EXTENSIONS = new Set([
+  ".c",
+  ".cpp",
+  ".css",
+  ".go",
+  ".html",
+  ".java",
+  ".js",
+  ".json",
+  ".jsx",
+  ".md",
+  ".py",
+  ".rs",
+  ".scss",
+  ".sh",
+  ".ts",
+  ".tsx",
+  ".txt",
+  ".yaml",
+  ".yml"
+]);
+const FILE_ACCEPT = Array.from(SUPPORTED_EXTENSIONS).join(",");
+
 const demoResponse: ChatResponse = {
   answer:
     "The FastAPI backend is wired in `backend/app/main.py`.\n\n| Area | File |\n| --- | --- |\n| App entry | `backend/app/main.py` |\n| Chat route | `backend/app/api/routes_chat.py` |\n\n```python\napplication.include_router(chat_router)\napplication.include_router(project_router)\n```",
   provider: "openai",
   model: "gpt-5.2",
   tool_calls: [
-    {
-      name: "search_text",
-      arguments: { keyword: "APIRouter" },
-      result: { count: 2 },
-      error: null
-    },
+    { name: "search_text", arguments: { keyword: "APIRouter" }, result: { count: 2 }, error: null },
     {
       name: "retrieve_code",
       arguments: { query: "FastAPI router" },
@@ -107,192 +134,155 @@ const demoResponse: ChatResponse = {
   ]
 };
 
-const COPY = {
-  zh: {
-    apiReady: "Backend API 就绪",
-    apiUnavailable: "Backend API 不可用",
-    appSubtitle: "专业代码库理解与开发辅助工作台",
-    askPlaceholder: "询问这个代码库，Shift + Enter 换行...",
-    captcha: "验证码",
-    codebase: "代码库导入",
-    codebaseHint:
-      "浏览器只能选择本地文件夹用于前端摘要。真正索引需要输入后端可访问路径；Docker 中建议把 D:/code/my_projects 映射到 /workspace。",
-    contextWarning: "输入较长，请确认模型上下文足够。",
-    currentPassword: "当前密码",
-    dockerPath: "后端可访问路径",
-    emailOrUsername: "邮箱 / 用户名",
-    forgot: "忘记密码",
-    index: "索引代码库",
-    indexing: "索引中",
-    loadExample: "加载示例对话",
-    login: "登录",
-    logout: "退出登录",
-    newPassword: "新密码",
-    password: "密码",
-    profile: "个人信息设置",
-    register: "注册",
-    resetPassword: "重置密码",
-    saveProfile: "保存个人资料",
-    send: "发送",
-    summary: "项目摘要",
-    theme: "主题",
-    tools: "能力入口",
-    uploadAvatar: "上传头像",
-    uploadFolder: "打开本地文件夹",
-    username: "用户名"
-  },
-  en: {
-    apiReady: "Backend API ready",
-    apiUnavailable: "Backend API unavailable",
-    appSubtitle: "Professional codebase Agent workspace",
-    askPlaceholder: "Ask about this codebase, Shift + Enter for newline...",
-    captcha: "Captcha",
-    codebase: "Codebase Import",
-    codebaseHint:
-      "Folder selection is used for the frontend summary. Real indexing requires a backend-visible path; in Docker, map D:/code/my_projects to /workspace.",
-    contextWarning: "Long input. Make sure the selected model context is sufficient.",
-    currentPassword: "Current password",
-    dockerPath: "Backend-visible path",
-    emailOrUsername: "Email / username",
-    forgot: "Forgot password",
-    index: "Index codebase",
-    indexing: "Indexing",
-    loadExample: "Load example",
-    login: "Sign in",
-    logout: "Sign out",
-    newPassword: "New password",
-    password: "Password",
-    profile: "Profile settings",
-    register: "Create account",
-    resetPassword: "Reset password",
-    saveProfile: "Save profile",
-    send: "Send",
-    summary: "Project Summary",
-    theme: "Theme",
-    tools: "Capabilities",
-    uploadAvatar: "Upload avatar",
-    uploadFolder: "Open local folder",
-    username: "Username"
-  }
-};
-
-const CAPABILITIES = {
-  zh: [
-    "代码生成 / 重构",
-    "架构分析与建议",
-    "自动化测试生成",
-    "Bug 定位与修复",
-    "依赖与安全扫描",
-    "文档自动生成",
-    "多文件上下文理解",
-    "Git 操作辅助"
-  ],
-  en: [
-    "Code generation/refactor",
-    "Architecture review",
-    "Test generation",
-    "Bug diagnosis",
-    "Dependency/security scan",
-    "Docs generation",
-    "Multi-file context",
-    "Git assistance"
-  ]
-};
-
-const initialMessages: ChatMessage[] = [
-  {
-    id: "demo-user",
-    role: "user",
-    content: "Where is the FastAPI router implemented?",
-    muted: true
-  },
-  {
-    id: "demo-assistant",
-    role: "assistant",
-    content: demoResponse.answer,
-    muted: true,
-    response: demoResponse
-  }
+const QUICK_ACTIONS = [
+  "Explain the Agent execution flow",
+  "Find the FastAPI route definitions",
+  "Review the tool registry design",
+  "Generate unit tests for the executor",
+  "Analyze a bug from an error log",
+  "Suggest a refactor plan"
 ];
 
 function formatApiError(error: unknown): string {
   if (error instanceof ApiClientError) {
-    if (typeof error.body?.detail === "string") {
-      return error.body.detail;
-    }
+    if (typeof error.body?.detail === "string") return error.body.detail;
     return error.body?.detail ? JSON.stringify(error.body.detail) : error.message;
   }
   if (error instanceof Error) return error.message;
-  return "Chat request failed.";
+  return "Request failed.";
 }
 
 function randomCaptcha(): string {
   return Math.random().toString(36).slice(2, 6).toUpperCase();
 }
 
+function fileExtension(fileName: string): string {
+  const dotIndex = fileName.lastIndexOf(".");
+  return dotIndex >= 0 ? fileName.slice(dotIndex).toLowerCase() : "";
+}
+
+function isSupportedCodeFile(file: File): boolean {
+  return SUPPORTED_EXTENSIONS.has(fileExtension(file.name));
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function inferLanguage(fileName: string): string {
-  const extension = fileName.split(".").pop()?.toLowerCase();
-  if (extension === "py") return "Python";
-  if (["ts", "tsx", "js", "jsx"].includes(extension ?? "")) return "TypeScript";
-  if (["css", "scss"].includes(extension ?? "")) return "CSS";
-  if (["md", "mdx"].includes(extension ?? "")) return "Markdown";
-  if (["yml", "yaml", "toml", "json"].includes(extension ?? "")) return "Config";
+  const extension = fileExtension(fileName);
+  if (extension === ".py") return "Python";
+  if ([".ts", ".tsx", ".js", ".jsx"].includes(extension)) return "TypeScript";
+  if ([".css", ".scss", ".html"].includes(extension)) return "Web";
+  if ([".c", ".cpp", ".java", ".go", ".rs"].includes(extension)) return "Compiled";
+  if ([".json", ".yaml", ".yml"].includes(extension)) return "Config";
+  if (extension === ".md") return "Markdown";
   return "Other";
 }
 
-function buildProjectSummary(
-  projectPath: string,
-  stats: ProjectIndexResponse | null,
-  folderFiles: File[]
-): ProjectSummary {
-  const pathParts = projectPath.replace(/\\/g, "/").split("/").filter(Boolean);
-  const name = pathParts.at(-1) || "AICodePilot";
-  const files = folderFiles.length || stats?.indexed_files || 0;
-  const chunks = stats?.chunks ?? 0;
-  const languageCounts = new Map<string, number>();
-  const structure = new Set<string>();
+function buildWorkspaceTree(files: File[]): WorkspaceNode[] {
+  type MutableNode = WorkspaceNode & { childMap?: Map<string, MutableNode> };
+  const root = new Map<string, MutableNode>();
 
-  for (const file of folderFiles.slice(0, 800)) {
+  // The browser exposes selected folders as a flat FileList. Rebuilding a small
+  // tree here gives users a VS Code-like project preview without asking the
+  // backend to inspect arbitrary local paths.
+  for (const file of files) {
     const relativePath = file.webkitRelativePath || file.name;
-    const language = inferLanguage(relativePath);
-    languageCounts.set(language, (languageCounts.get(language) ?? 0) + 1);
-
     const parts = relativePath.split("/").filter(Boolean);
-    if (parts.length > 1) {
-      structure.add(parts.slice(0, Math.min(parts.length, 3)).join("/"));
-    }
+    let current = root;
+    let path = "";
+
+    parts.forEach((part, index) => {
+      path = path ? `${path}/${part}` : part;
+      const isFile = index === parts.length - 1;
+      if (!current.has(part)) {
+        current.set(part, {
+          childMap: isFile ? undefined : new Map<string, MutableNode>(),
+          name: part,
+          path,
+          type: isFile ? "file" : "folder"
+        });
+      }
+      const node = current.get(part);
+      if (!node || isFile) return;
+      node.childMap ??= new Map<string, MutableNode>();
+      current = node.childMap;
+    });
   }
 
-  if (languageCounts.size === 0) {
-    languageCounts.set("Python", 42);
-    languageCounts.set("TypeScript", 28);
-    languageCounts.set("Markdown", 16);
-    languageCounts.set("Config", 14);
+  function materialize(nodes: Iterable<MutableNode>): WorkspaceNode[] {
+    return Array.from(nodes)
+      .map((node) => ({
+        name: node.name,
+        path: node.path,
+        type: node.type,
+        children: node.childMap ? materialize(node.childMap.values()) : undefined
+      }))
+      .sort((left, right) => {
+        if (left.type !== right.type) return left.type === "folder" ? -1 : 1;
+        return left.name.localeCompare(right.name);
+      });
+  }
+
+  return materialize(root.values());
+}
+
+async function buildImportSummary(
+  kind: ImportKind,
+  files: File[],
+  stats: ProjectIndexResponse | null = null
+): Promise<ProjectSummary> {
+  const firstFile = files[0];
+  const rootName =
+    kind === "folder" && firstFile?.webkitRelativePath
+      ? firstFile.webkitRelativePath.split("/")[0]
+      : firstFile?.name || "Workspace";
+  const languageCounts = new Map<string, number>();
+  const structure = new Set<string>();
+  let lineCount = 0;
+  let sizeBytes = 0;
+
+  // The summary is intentionally computed in the browser for instant feedback:
+  // project/file name, rough language mix, total bytes, and line counts. The
+  // backend indexing response is merged later when a real RAG index is created.
+  for (const file of files) {
+    const relativePath = file.webkitRelativePath || file.name;
+    const language = inferLanguage(relativePath);
+    sizeBytes += file.size;
+    languageCounts.set(language, (languageCounts.get(language) ?? 0) + 1);
+    const parts = relativePath.split("/").filter(Boolean);
+    if (parts.length > 1) structure.add(parts.slice(0, Math.min(parts.length, 3)).join("/"));
+
+    // Browser imports are only used for local preview metadata. The backend
+    // still needs a backend-visible path before it can perform real RAG indexing.
+    if (file.size <= 1024 * 1024) {
+      const text = await file.text().catch(() => "");
+      lineCount += text ? text.split(/\r?\n/).length : 0;
+    }
   }
 
   const total = Array.from(languageCounts.values()).reduce((sum, value) => sum + value, 0) || 1;
   const languages = Array.from(languageCounts.entries())
-    .map(([label, value]) => ({
-      label,
-      percent: Math.round((value / total) * 100),
-      value
-    }))
+    .map(([label, value]) => ({ label, percent: Math.round((value / total) * 100), value }))
     .sort((left, right) => right.value - left.value)
     .slice(0, 6);
 
   return {
-    architecture: ["FastAPI backend", "Next.js frontend", "Hand-written Agent loop", "RAG retrieval", "Docker Compose"],
-    chunks,
-    description: "AI codebase understanding and development assistant with Agent tool calling and RAG retrieval.",
-    files,
+    chunks: stats?.chunks ?? 0,
+    description:
+      kind === "folder"
+        ? "Local folder imported for frontend structure preview."
+        : "Single code file imported for frontend preview.",
+    files: files.length,
+    kind,
     languages,
-    name,
-    purpose: "Help developers inspect unfamiliar projects, locate logic, analyze issues, and generate engineering guidance.",
-    stack: ["Python", "FastAPI", "React", "Next.js", "Tailwind CSS", "LLM API", "RAG", "Docker"],
-    structure:
-      structure.size > 0
-        ? Array.from(structure).slice(0, 12)
-        : ["backend/app/agent", "backend/app/tools", "backend/app/rag", "frontend/components", "docs"]
+    lineCount,
+    name: rootName,
+    sizeBytes,
+    structure: structure.size > 0 ? Array.from(structure).slice(0, 14) : files.map((file) => file.name).slice(0, 14)
   };
 }
 
@@ -302,13 +292,6 @@ function MarkdownMessage({ content }: { content: string }) {
       rehypePlugins={[rehypeHighlight]}
       remarkPlugins={[remarkGfm]}
       components={{
-        code({ className, children, ...props }) {
-          return (
-            <code className={className} {...props}>
-              {children}
-            </code>
-          );
-        },
         table({ children }) {
           return (
             <div className="markdown-table-wrap">
@@ -323,22 +306,37 @@ function MarkdownMessage({ content }: { content: string }) {
   );
 }
 
+function WorkspaceTree({ nodes }: { nodes: WorkspaceNode[] }) {
+  if (nodes.length === 0) return null;
+
+  return (
+    <ul className="workspace-tree">
+      {nodes.map((node) => (
+        <li key={node.path}>
+          <span className={`workspace-tree-row ${node.type}`}>
+            {node.type === "folder" ? <FolderOpen className="h-3.5 w-3.5" /> : <FileCode2 className="h-3.5 w-3.5" />}
+            <span>{node.name}</span>
+          </span>
+          {node.children?.length ? <WorkspaceTree nodes={node.children} /> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function ChatWorkspace() {
-  const [selection, setSelection] = useState<ProviderSelection>({
-    provider: "deepseek",
-    model: "deepseek-v4-pro"
-  });
-  const [language, setLanguage] = useState<Language>("zh");
+  const [selection, setSelection] = useState<ProviderSelection>({ provider: "deepseek", model: "deepseek-v4-pro" });
   const [theme, setTheme] = useState<Theme>("light");
   const [projectPath, setProjectPath] = useState(DEFAULT_PROJECT_PATH);
-  const [folderFiles, setFolderFiles] = useState<File[]>([]);
+  const [workspaceTree, setWorkspaceTree] = useState<WorkspaceNode[]>([]);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
   const [indexStats, setIndexStats] = useState<ProjectIndexResponse | null>(null);
   const [projectSummary, setProjectSummary] = useState<ProjectSummary | null>(null);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [indexError, setIndexError] = useState<string | null>(null);
   const [backendReady, setBackendReady] = useState(false);
@@ -348,22 +346,18 @@ export function ChatWorkspace() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const labels = COPY[language];
   const latestResponse = useMemo(
     () => [...messages].reverse().find((item) => item.response)?.response ?? null,
     [messages]
   );
-  const reasoningItems = latestResponse?.tool_calls.map((toolCall) => toolCall.name) ?? [];
 
   useEffect(() => {
-    const storedLanguage = window.localStorage.getItem("aicodepilot-language") as Language | null;
     const storedTheme = window.localStorage.getItem("aicodepilot-theme") as Theme | null;
     const storedUser = window.localStorage.getItem("aicodepilot-user");
-
-    if (storedLanguage === "zh" || storedLanguage === "en") setLanguage(storedLanguage);
     if (storedTheme === "light" || storedTheme === "dark") setTheme(storedTheme);
     if (storedUser) {
       try {
@@ -380,40 +374,89 @@ export function ChatWorkspace() {
   }, [theme]);
 
   useEffect(() => {
-    window.localStorage.setItem("aicodepilot-language", language);
-  }, [language]);
-
-  useEffect(() => {
     getHealth()
       .then(() => setBackendReady(true))
       .catch(() => setBackendReady(false));
   }, []);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: "smooth"
-    });
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isSending, error]);
+
+  async function handleFolderChange(event: ChangeEvent<HTMLInputElement>) {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (selectedFiles.length === 0) return;
+    if (selectedFiles.some((file) => !isSupportedCodeFile(file))) {
+      setImportError("Unsupported file format. Please select a code file or a project folder.");
+      return;
+    }
+
+    setWorkspaceTree(buildWorkspaceTree(selectedFiles));
+    const summary = await buildImportSummary("folder", selectedFiles, indexStats);
+    setProjectSummary(summary);
+    setIsSummaryOpen(true);
+  }
+
+  async function handleSingleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const selectedFile = event.target.files?.[0];
+    event.target.value = "";
+    if (!selectedFile) return;
+    if (!isSupportedCodeFile(selectedFile)) {
+      setImportError("Unsupported file format. Please select a code file or a project folder.");
+      return;
+    }
+
+    setWorkspaceTree(buildWorkspaceTree([selectedFile]));
+    const summary = await buildImportSummary("file", [selectedFile], null);
+    setProjectSummary(summary);
+    setIsSummaryOpen(true);
+  }
+
+  async function handleIndexProject() {
+    const trimmedProjectPath = projectPath.trim();
+    if (!trimmedProjectPath || isIndexing) return;
+
+    setIsIndexing(true);
+    setIndexError(null);
+    setIndexStats(null);
+
+    try {
+      const stats = await indexProject({ project_path: trimmedProjectPath });
+      setIndexStats(stats);
+      setProjectSummary((current) =>
+        current
+          ? { ...current, chunks: stats.chunks, files: Math.max(current.files, stats.indexed_files) }
+          : {
+              chunks: stats.chunks,
+              description: "Backend-visible workspace indexed for semantic retrieval.",
+              files: stats.indexed_files,
+              kind: "folder",
+              languages: [],
+              lineCount: 0,
+              name: trimmedProjectPath.replace(/\\/g, "/").split("/").filter(Boolean).at(-1) ?? "Workspace",
+              sizeBytes: 0,
+              structure: []
+            }
+      );
+      setIsSummaryOpen(true);
+    } catch (requestError) {
+      setIndexError(formatApiError(requestError));
+    } finally {
+      setIsIndexing(false);
+    }
+  }
 
   async function handleSubmit(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     const trimmedMessage = message.trim();
     if (!trimmedMessage || isSending) return;
     if (!authUser) {
-      setAuthMode("login");
+      openAuthMode("login");
       return;
     }
 
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: trimmedMessage
-    };
-
-    // Optimistic UI keeps the chat responsive while the backend Agent performs
-    // tool planning, RAG lookup, and final answer synthesis.
-    setMessages((current) => [...current, userMessage]);
+    setMessages((current) => [...current, { id: `user-${Date.now()}`, role: "user", content: trimmedMessage }]);
     setMessage("");
     setError(null);
     setIsSending(true);
@@ -427,48 +470,12 @@ export function ChatWorkspace() {
       });
       setMessages((current) => [
         ...current,
-        {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          content: response.answer,
-          response
-        }
+        { id: `assistant-${Date.now()}`, role: "assistant", content: response.answer, response }
       ]);
     } catch (requestError) {
       setError(formatApiError(requestError));
     } finally {
       setIsSending(false);
-    }
-  }
-
-  async function handleIndexProject() {
-    const trimmedProjectPath = projectPath.trim();
-    if (!trimmedProjectPath || isIndexing) return;
-
-    setIsIndexing(true);
-    setIndexError(null);
-    setIndexStats(null);
-
-    try {
-      const stats = await indexProject({ project_path: trimmedProjectPath });
-      const summary = buildProjectSummary(trimmedProjectPath, stats, folderFiles);
-      setIndexStats(stats);
-      setProjectSummary(summary);
-      setIsSummaryOpen(true);
-    } catch (requestError) {
-      setIndexError(formatApiError(requestError));
-    } finally {
-      setIsIndexing(false);
-    }
-  }
-
-  function handleFolderChange(event: ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = Array.from(event.target.files ?? []);
-    setFolderFiles(selectedFiles);
-    if (selectedFiles[0]?.webkitRelativePath) {
-      const rootFolder = selectedFiles[0].webkitRelativePath.split("/")[0];
-      setProjectSummary(buildProjectSummary(rootFolder, indexStats, selectedFiles));
-      setIsSummaryOpen(true);
     }
   }
 
@@ -479,52 +486,6 @@ export function ChatWorkspace() {
     }
   }
 
-  function handleAuthSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setAuthError(null);
-
-    if (authMode !== "profile" && captchaInput.trim().toUpperCase() !== captchaCode) {
-      setAuthError(language === "zh" ? "验证码不正确，请重新输入。" : "Captcha is incorrect. Please try again.");
-      setCaptchaCode(randomCaptcha());
-      setCaptchaInput("");
-      return;
-    }
-
-    const form = new FormData(event.currentTarget);
-    const fallbackName = authUser?.name || "Jacky";
-    const nextName = String(form.get("username") || form.get("email") || fallbackName).trim() || fallbackName;
-    const nextUser = {
-      avatarUrl: authUser?.avatarUrl ?? DEFAULT_AVATAR,
-      name: nextName
-    };
-
-    // This MVP keeps authentication state in localStorage. The UI contract is
-    // shaped like a production auth flow so it can later be swapped to backend
-    // sessions without redesigning the workspace.
-    setAuthUser(nextUser);
-    window.localStorage.setItem("aicodepilot-user", JSON.stringify(nextUser));
-    setCaptchaInput("");
-    setCaptchaCode(randomCaptcha());
-    setAuthMode(null);
-    setIsUserMenuOpen(false);
-  }
-
-  function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const nextUser = {
-        avatarUrl: String(reader.result),
-        name: authUser?.name ?? "Jacky"
-      };
-      setAuthUser(nextUser);
-      window.localStorage.setItem("aicodepilot-user", JSON.stringify(nextUser));
-    };
-    reader.readAsDataURL(file);
-  }
-
   function openAuthMode(nextMode: AuthMode) {
     setAuthError(null);
     setCaptchaInput("");
@@ -533,8 +494,44 @@ export function ChatWorkspace() {
     setIsUserMenuOpen(false);
   }
 
+  function handleAuthSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthError(null);
+
+    if (authMode !== "profile" && captchaInput.trim().toUpperCase() !== captchaCode) {
+      setAuthError("Captcha is incorrect. Please try again.");
+      setCaptchaCode(randomCaptcha());
+      setCaptchaInput("");
+      return;
+    }
+
+    const form = new FormData(event.currentTarget);
+    const fallbackName = authUser?.name || "Developer";
+    const nextName = String(form.get("username") || form.get("email") || fallbackName).trim() || fallbackName;
+    const nextUser = { avatarUrl: authUser?.avatarUrl ?? DEFAULT_AVATAR, name: nextName };
+    setAuthUser(nextUser);
+    window.localStorage.setItem("aicodepilot-user", JSON.stringify(nextUser));
+    setCaptchaInput("");
+    setAuthMode(null);
+  }
+
+  function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const nextUser = { avatarUrl: String(reader.result), name: authUser?.name ?? "Developer" };
+      setAuthUser(nextUser);
+      window.localStorage.setItem("aicodepilot-user", JSON.stringify(nextUser));
+    };
+    reader.readAsDataURL(file);
+  }
+
   function loadDemo() {
-    setMessages(initialMessages);
+    setMessages([
+      { id: "demo-user", role: "user", content: "Where is the FastAPI router implemented?", muted: true },
+      { id: "demo-assistant", role: "assistant", content: demoResponse.answer, muted: true, response: demoResponse }
+    ]);
     setError(null);
   }
 
@@ -547,28 +544,19 @@ export function ChatWorkspace() {
           </div>
           <div>
             <h1>AICodePilot</h1>
-            <p>{labels.appSubtitle}</p>
+            <p>AI codebase understanding and development workspace</p>
           </div>
         </div>
 
         <div className="top-actions">
           <div className={`status-chip ${backendReady ? "ready" : "warning"}`}>
             {backendReady ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-            {backendReady ? labels.apiReady : labels.apiUnavailable}
+            {backendReady ? "Backend API ready" : "Backend API unavailable"}
           </div>
           <button
             className="icon-button"
-            onClick={() => setLanguage((current) => (current === "zh" ? "en" : "zh"))}
-            title="Language"
-            type="button"
-          >
-            <Languages className="h-4 w-4" />
-            <span>{language === "zh" ? "中文" : "EN"}</span>
-          </button>
-          <button
-            className="icon-button"
             onClick={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
-            title={labels.theme}
+            title="Toggle theme"
             type="button"
           >
             {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -584,11 +572,11 @@ export function ChatWorkspace() {
                 <div className="user-menu">
                   <button onClick={() => openAuthMode("profile")} type="button">
                     <Settings className="h-4 w-4" />
-                    {labels.profile}
+                    Profile settings
                   </button>
                   <button onClick={() => openAuthMode("forgot")} type="button">
                     <KeyRound className="h-4 w-4" />
-                    {labels.resetPassword}
+                    Reset password
                   </button>
                   <button
                     onClick={() => {
@@ -599,7 +587,7 @@ export function ChatWorkspace() {
                     type="button"
                   >
                     <LogIn className="h-4 w-4" />
-                    {labels.logout}
+                    Sign out
                   </button>
                 </div>
               ) : null}
@@ -607,7 +595,7 @@ export function ChatWorkspace() {
           ) : (
             <button className="primary-soft-button" onClick={() => openAuthMode("login")} type="button">
               <User className="h-4 w-4" />
-              {labels.login}
+              Sign in
             </button>
           )}
         </div>
@@ -615,40 +603,51 @@ export function ChatWorkspace() {
 
       <section className="workspace-grid">
         <aside className="workspace-column left-rail">
-          <ProviderSelector language={language} onChange={setSelection} value={selection} />
+          <ProviderSelector onChange={setSelection} value={selection} />
 
-          <section className="panel-card codebase-panel">
+          <section className="panel-card workspace-panel">
             <div className="panel-heading">
               <div>
-                <p className="panel-kicker">Repository</p>
-                <h2>{labels.codebase}</h2>
+                <p className="panel-kicker">Workspace</p>
+                <h2>Open project or file</h2>
               </div>
               <FolderOpen className="h-5 w-5 text-accent" aria-hidden="true" />
             </div>
 
             <input className="hidden" multiple onChange={handleFolderChange} ref={folderInputRef} type="file" />
-            <button
-              className="secondary-button mb-3 w-full"
-              onClick={() => {
-                folderInputRef.current?.setAttribute("webkitdirectory", "true");
-                folderInputRef.current?.click();
-              }}
-              type="button"
-            >
-              <FolderOpen className="h-4 w-4" />
-              {labels.uploadFolder}
-            </button>
+            <input accept={FILE_ACCEPT} className="hidden" onChange={handleSingleFileChange} ref={fileInputRef} type="file" />
+
+            <div className="workspace-actions">
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  folderInputRef.current?.setAttribute("webkitdirectory", "true");
+                  folderInputRef.current?.click();
+                }}
+                type="button"
+              >
+                <FolderOpen className="h-4 w-4" />
+                Open folder
+              </button>
+              <button className="secondary-button" onClick={() => fileInputRef.current?.click()} type="button">
+                <FileCode2 className="h-4 w-4" />
+                Open file
+              </button>
+            </div>
 
             <label className="field-label" htmlFor="project-path">
-              {labels.dockerPath}
+              Backend-visible path
             </label>
             <input
-              className="field-input mb-3"
+              className="field-input"
               id="project-path"
               onChange={(event) => setProjectPath(event.target.value)}
               value={projectPath}
             />
-            <p className="mb-3 text-xs leading-5 text-muted">{labels.codebaseHint}</p>
+            <p className="workspace-hint">
+              Browser imports power local preview only. RAG indexing requires a path visible to the backend or Docker
+              container.
+            </p>
 
             <button
               className="accent-button w-full"
@@ -657,7 +656,7 @@ export function ChatWorkspace() {
               type="button"
             >
               {isIndexing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-              {isIndexing ? labels.indexing : labels.index}
+              {isIndexing ? "Indexing" : "Index workspace"}
             </button>
 
             {indexStats ? (
@@ -667,24 +666,7 @@ export function ChatWorkspace() {
               </div>
             ) : null}
             {indexError ? <div className="error-box mt-3">{indexError}</div> : null}
-          </section>
-
-          <section className="panel-card capability-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="panel-kicker">Roadmap</p>
-                <h2>{labels.tools}</h2>
-              </div>
-              <BrainCircuit className="h-5 w-5 text-primary" />
-            </div>
-            <div className="capability-grid">
-              {CAPABILITIES[language].map((capability) => (
-                <button className="capability-chip" key={capability} type="button">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  <span>{capability}</span>
-                </button>
-              ))}
-            </div>
+            <WorkspaceTree nodes={workspaceTree} />
           </section>
         </aside>
 
@@ -702,11 +684,25 @@ export function ChatWorkspace() {
               </div>
             </div>
             <button className="secondary-button" onClick={loadDemo} type="button">
-              {labels.loadExample}
+              Load example
             </button>
           </div>
 
           <div className="message-list" ref={scrollRef}>
+            {messages.length === 0 ? (
+              <section className="chat-welcome">
+                <h3>Start with a codebase question</h3>
+                <p>Select a workspace, index it, then ask the Agent to inspect files, search code, or explain behavior.</p>
+                <div className="quick-action-grid">
+                  {QUICK_ACTIONS.map((action) => (
+                    <button key={action} onClick={() => setMessage(action)} type="button">
+                      {action}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             {messages.map((item) => (
               <article
                 className={`message-row ${item.role === "user" ? "user" : "assistant"} ${item.muted ? "muted-demo" : ""}`}
@@ -721,10 +717,10 @@ export function ChatWorkspace() {
                   <MarkdownMessage content={item.content} />
                   {item.response ? (
                     <details className="reasoning-panel">
-                      <summary>{language === "zh" ? "执行摘要" : "Reasoning summary"}</summary>
+                      <summary>Execution summary</summary>
                       <ul>
-                        {reasoningItems.map((toolName, index) => (
-                          <li key={`${toolName}-${index}`}>{toolName}</li>
+                        {item.response.tool_calls.map((toolCall, index) => (
+                          <li key={`${toolCall.name}-${index}`}>{toolCall.name}</li>
                         ))}
                       </ul>
                     </details>
@@ -735,6 +731,7 @@ export function ChatWorkspace() {
                 ) : null}
               </article>
             ))}
+
             {isSending ? (
               <article className="message-row assistant">
                 <div className="agent-avatar">
@@ -742,7 +739,7 @@ export function ChatWorkspace() {
                 </div>
                 <div className="message-bubble loading">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {language === "zh" ? "Agent 正在分析代码库..." : "Agent is analyzing the codebase..."}
+                  Thinking through the codebase...
                 </div>
               </article>
             ) : null}
@@ -755,43 +752,37 @@ export function ChatWorkspace() {
               maxLength={32000}
               onChange={(event) => setMessage(event.target.value)}
               onKeyDown={handleComposerKeyDown}
-              placeholder={labels.askPlaceholder}
+              placeholder="Ask about this codebase. Shift + Enter for a new line..."
               value={message}
             />
             <div className="composer-footer">
               <span className={message.length > 12000 ? "text-warning" : ""}>
-                {message.length > 12000 ? labels.contextWarning : `${message.length.toLocaleString()} chars`}
+                {message.length > 12000 ? "Long prompt. Check the selected model context window." : `${message.length.toLocaleString()} chars`}
               </span>
               <button className="send-button" disabled={isSending || !message.trim()} type="submit">
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                <span>{labels.send}</span>
+                <span>Send</span>
               </button>
             </div>
           </form>
         </section>
 
         <aside className="workspace-column right-rail">
-          <ToolCallTimeline
-            isRunning={isSending}
-            language={language}
-            toolCalls={latestResponse?.tool_calls ?? []}
-          />
-          <CodeReference language={language} references={latestResponse?.references ?? []} />
+          <ToolCallTimeline isRunning={isSending} language="en" toolCalls={latestResponse?.tool_calls ?? []} />
+          <CodeReference language="en" references={latestResponse?.references ?? []} />
         </aside>
       </section>
 
       {isSummaryOpen && projectSummary ? (
-        <ProjectSummaryModal language={language} onClose={() => setIsSummaryOpen(false)} summary={projectSummary} />
+        <ProjectSummaryModal onClose={() => setIsSummaryOpen(false)} summary={projectSummary} />
       ) : null}
-
+      {importError ? <ImportErrorModal message={importError} onClose={() => setImportError(null)} /> : null}
       {authMode ? (
         <AuthModal
           authError={authError}
           authMode={authMode}
           captchaCode={captchaCode}
           captchaInput={captchaInput}
-          language={language}
-          labels={labels}
           onAvatarUpload={handleAvatarUpload}
           onCaptchaChange={setCaptchaInput}
           onClose={() => setAuthMode(null)}
@@ -805,85 +796,82 @@ export function ChatWorkspace() {
   );
 }
 
-function ProjectSummaryModal({
-  language,
-  onClose,
-  summary
-}: {
-  language: Language;
-  onClose: () => void;
-  summary: ProjectSummary;
-}) {
+function ProjectSummaryModal({ onClose, summary }: { onClose: () => void; summary: ProjectSummary }) {
   return (
     <div className="modal-backdrop">
       <section className="project-modal">
-        <div className="modal-header">
+        <header className="modal-header">
           <div>
-            <p className="panel-kicker">{language === "zh" ? "项目摘要" : "Project Summary"}</p>
+            <p className="panel-kicker">{summary.kind === "folder" ? "Project imported" : "File imported"}</p>
             <h2>{summary.name}</h2>
             <p>{summary.description}</p>
           </div>
           <button className="icon-button" onClick={onClose} type="button">
             <X className="h-4 w-4" />
           </button>
+        </header>
+
+        <div className="summary-metrics">
+          <span>{summary.files} files</span>
+          <span>{formatBytes(summary.sizeBytes)}</span>
+          <span>{summary.lineCount.toLocaleString()} lines</span>
+          <span>{summary.chunks.toLocaleString()} chunks</span>
         </div>
 
         <div className="summary-grid">
-          <div className="summary-card">
-            <h3>{language === "zh" ? "用途" : "Purpose"}</h3>
-            <p>{summary.purpose}</p>
-          </div>
-          <div className="summary-card">
-            <h3>{language === "zh" ? "规模" : "Size"}</h3>
-            <div className="metric-strip">
-              <span>{summary.files} files</span>
-              <span>{summary.chunks} chunks</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="summary-card">
-          <h3>{language === "zh" ? "技术栈" : "Tech Stack"}</h3>
-          <div className="tag-row">
-            {summary.stack.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        </div>
-
-        <div className="summary-grid">
-          <div className="summary-card">
-            <h3>{language === "zh" ? "主要架构" : "Architecture"}</h3>
-            <ul className="compact-list">
-              {summary.architecture.map((item) => (
-                <li key={item}>{item}</li>
+          <section className="summary-card">
+            <h3>Language mix</h3>
+            <div className="language-chart">
+              {summary.languages.map((item) => (
+                <div className="language-row" key={item.label}>
+                  <span>{item.label}</span>
+                  <div>
+                    <i style={{ width: `${item.percent}%` }} />
+                  </div>
+                  <strong>{item.percent}%</strong>
+                </div>
               ))}
-            </ul>
-          </div>
-          <div className="summary-card">
-            <h3>{language === "zh" ? "结构概览" : "Structure"}</h3>
+            </div>
+          </section>
+          <section className="summary-card">
+            <h3>Structure preview</h3>
             <ul className="compact-list structure-list">
               {summary.structure.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
-          </div>
+          </section>
         </div>
 
-        <div className="summary-card">
-          <h3>{language === "zh" ? "语言比例" : "Language Mix"}</h3>
-          <div className="language-chart">
-            {summary.languages.map((item) => (
-              <div className="language-row" key={item.label}>
-                <span>{item.label}</span>
-                <div>
-                  <i style={{ width: `${item.percent}%` }} />
-                </div>
-                <strong>{item.percent}%</strong>
-              </div>
-            ))}
+        <footer className="modal-footer">
+          <button className="primary-button" onClick={onClose} type="button">
+            Done
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function ImportErrorModal({ message, onClose }: { message: string; onClose: () => void }) {
+  return (
+    <div className="modal-backdrop">
+      <section className="alert-modal">
+        <header className="modal-header">
+          <div>
+            <p className="panel-kicker">Import blocked</p>
+            <h2>Unsupported file format</h2>
           </div>
-        </div>
+          <button className="icon-button" onClick={onClose} type="button">
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+        <p>{message}</p>
+        <footer className="modal-footer">
+          <button className="primary-button" onClick={onClose} type="button">
+            Choose again
+          </button>
+        </footer>
       </section>
     </div>
   );
@@ -894,8 +882,6 @@ function AuthModal({
   authMode,
   captchaCode,
   captchaInput,
-  language,
-  labels,
   onAvatarUpload,
   onCaptchaChange,
   onClose,
@@ -908,8 +894,6 @@ function AuthModal({
   authMode: AuthMode;
   captchaCode: string;
   captchaInput: string;
-  language: Language;
-  labels: (typeof COPY)["zh"];
   onAvatarUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   onCaptchaChange: (value: string) => void;
   onClose: () => void;
@@ -922,18 +906,17 @@ function AuthModal({
   const isForgot = authMode === "forgot";
   const title =
     authMode === "login"
-      ? labels.login
+      ? "Sign in"
       : authMode === "register"
-        ? labels.register
+        ? "Create account"
         : authMode === "forgot"
-          ? labels.resetPassword
-          : labels.profile;
-  const submitLabel = isProfile ? labels.saveProfile : title;
+          ? "Reset password"
+          : "Profile settings";
 
   return (
     <div className="modal-backdrop">
       <form className="auth-modal" onSubmit={onSubmit}>
-        <div className="modal-header">
+        <header className="modal-header">
           <div>
             <p className="panel-kicker">Account</p>
             <h2>{title}</h2>
@@ -941,19 +924,19 @@ function AuthModal({
           <button className="icon-button" onClick={onClose} type="button">
             <X className="h-4 w-4" />
           </button>
-        </div>
+        </header>
 
         {isProfile ? (
           <div className="profile-avatar">
             <img alt="" src={user?.avatarUrl ?? DEFAULT_AVATAR} />
             <label className="secondary-button">
-              {labels.uploadAvatar}
+              Upload avatar
               <input accept="image/*" className="hidden" onChange={onAvatarUpload} type="file" />
             </label>
           </div>
         ) : null}
 
-        <label className="field-label">{isProfile ? labels.username : labels.emailOrUsername}</label>
+        <label className="field-label">{isProfile ? "Username" : "Email or username"}</label>
         <input
           className="field-input"
           defaultValue={isProfile ? user?.name : ""}
@@ -963,34 +946,23 @@ function AuthModal({
 
         {!isForgot ? (
           <>
-            <label className="field-label">{isProfile ? labels.currentPassword : labels.password}</label>
-            <input
-              className="field-input"
-              minLength={isProfile ? undefined : 6}
-              name="password"
-              required={!isProfile}
-              type="password"
-            />
+            <label className="field-label">{isProfile ? "Current password" : "Password"}</label>
+            <input className="field-input" minLength={isProfile ? undefined : 6} name="password" required={!isProfile} type="password" />
           </>
         ) : null}
 
         {isProfile || isForgot ? (
           <>
-            <label className="field-label">{labels.newPassword}</label>
+            <label className="field-label">New password</label>
             <input className="field-input" minLength={6} name="newPassword" required={isForgot} type="password" />
           </>
         ) : null}
 
         {!isProfile ? (
           <>
-            <label className="field-label">{labels.captcha}</label>
+            <label className="field-label">Captcha</label>
             <div className="captcha-row">
-              <input
-                className="field-input"
-                onChange={(event) => onCaptchaChange(event.target.value)}
-                required
-                value={captchaInput}
-              />
+              <input className="field-input" onChange={(event) => onCaptchaChange(event.target.value)} required value={captchaInput} />
               <button className="captcha-code" onClick={onRefreshCaptcha} type="button">
                 {captchaCode}
               </button>
@@ -1002,26 +974,20 @@ function AuthModal({
 
         <button className="primary-button w-full" type="submit">
           {authMode === "register" ? <UserPlus className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
-          {submitLabel}
+          {isProfile ? "Save profile" : title}
         </button>
 
         <div className="auth-links">
           <button onClick={() => onModeChange("login")} type="button">
-            {labels.login}
+            Sign in
           </button>
           <button onClick={() => onModeChange("register")} type="button">
-            {labels.register}
+            Register
           </button>
           <button onClick={() => onModeChange("forgot")} type="button">
-            {labels.forgot}
+            Forgot password
           </button>
         </div>
-
-        <p className="auth-note">
-          {language === "zh"
-            ? "当前版本为前端本地演示认证，后续可替换为后端会话和邮箱验证码。"
-            : "This MVP uses local demo auth and can be replaced with backend sessions later."}
-        </p>
       </form>
     </div>
   );

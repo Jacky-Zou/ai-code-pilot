@@ -1,263 +1,157 @@
-# Development Guide 🧑‍💻
-
-AICodePilot follows phased delivery. Each task must move from `TODO` to `IN_PROGRESS` to `DONE` only after validation passes.
-
-## Workflow Rules ✅
-
-- Keep the Agent core handwritten in the first phase.
-- Work on one TodoList item at a time.
-- Update docs with every task or phase that changes user-facing behavior.
-- Run the requested validation before moving to the next task.
-- Use Conventional Commits.
-- Keep secrets out of Git.
-
-## Phase Completion Checklist 🧪
-
-Every completed phase must include a from-start-to-finish sanity check:
-
-1. Verify directory structure and required files still match the project plan.
-2. Run focused tests for the phase.
-3. Run the full backend test suite when backend code is affected.
-4. Smoke-test runtime entrypoints such as CLI imports, FastAPI app creation, OpenAPI schema, health checks, and frontend rendering.
-5. Review TodoList statuses and related docs for consistency.
-6. Commit and push only after validation passes.
-
-## Phase 3 Validation 🌐
-
-Phase 3 specifically verifies:
-
-- `GET /api/health`
-- `POST /api/chat`
-- `POST /api/projects/index`
-- `POST /api/projects/search`
-- Unified JSON error responses
-- No regression in Agent, tools, providers, or RAG tests
-
-## Phase 4 Frontend Validation 🖥️
-
-Phase 4 verifies the interactive web workspace:
-
-- `npm run typecheck` confirms React and API-client types are valid.
-- `npm run lint` checks frontend source quality.
-- `npm run build` confirms the Next.js app compiles for production.
-- A browser smoke test confirms the dashboard renders at `http://127.0.0.1:3000`.
-- The UI flow covers provider/model selection, project indexing, Agent chat, tool call timeline, and code references.
-
-Completed Phase 4 validation includes:
-
-- Full backend regression test with a temporary Chroma vector store path: `86 passed`.
-- Frontend `npm run typecheck`.
-- Frontend `npm run lint`.
-- Frontend `npm run build`.
-- HTTP smoke test against a local Next.js server: `STATUS=200`.
-
-## Phase 5 Memory Validation 🧠
-
-The conversation memory task verifies:
-
-- Recent user, assistant, and tool messages are stored in LLM-ready order.
-- History is trimmed by complete user turns rather than arbitrary message count.
-- Blank messages and invalid memory limits fail clearly.
-- `pytest` runs without pytest cache warnings by disabling the cache provider in `pytest.ini`.
-
-## Phase 5 Log Tool Validation 🧾
-
-The log analyzer task verifies:
-
-- Severity counts for `INFO`, `WARNING`, `ERROR`, and related levels.
-- Extraction of issue lines and exception names.
-- Python traceback frame parsing with file path, line number, and function name.
-- Result limiting through `max_issues`.
-- Read-only behavior with no filesystem or shell side effects.
-
-## Phase 5 Shell Tool Validation 🛡️
-
-The safe shell task verifies:
-
-- Commands run only with `shell=False`.
-- `cwd` can be restricted to the declared project root.
-- Dangerous commands and shell control operators are rejected.
-- Timeout, non-zero exit code, `stdout`, and `stderr` are captured in structured output.
-- Windows command parsing preserves executable paths and quoted arguments safely.
-
-## Phase 5 Patch Validation 🧩
-
-The patch suggestion task verifies:
-
-- Unified diffs include `--- a/...` and `+++ b/...` paths.
-- No-op changes are rejected.
-- Absolute paths and parent-directory targets are rejected.
-- Multi-file patch suggestions can be generated without touching the filesystem.
-
-## Phase 5 Advanced Tool Integration Validation 🔗
-
-The integration task verifies:
-
-- `analyze_log` and `run_command` are present in the default `ToolRegistry`.
-- `run_command` receives `project_path` injection through the Agent executor.
-- Optional conversation memory is included in LLM message history and updated after responses.
-- Tool-returned `patch_suggestions` are validated and forwarded without applying diffs.
-
-Completed Phase 5 validation includes:
-
-- Full backend regression test with a temporary Chroma vector store path: `106 passed`.
-- Frontend `npm run typecheck`.
-- Frontend `npm run lint`.
-- Frontend `npm run build`.
-- HTTP smoke test against a local Next.js server: `STATUS=200`.
-- TodoList and security documentation review for memory, log, shell, and patch boundaries.
-
-## Phase 6 Config Validation 🛡️
-
-The configuration quality task verifies:
-
-- Runtime provider choices are validated at startup instead of failing later in Agent or RAG code.
-- `LLM_PROVIDER` supports `openai` and `deepseek`.
-- `EMBEDDING_PROVIDER` supports `openai` and `local`.
-- `VECTOR_STORE_BACKEND` supports `chroma`, `json`, and `memory`.
-- `LOG_LEVEL` accepts standard Python logging levels only.
-- Base URLs are trimmed, normalized, and required to use `http://` or `https://`.
-- Blank `LLM_MODEL` values fall back to the selected provider's default model.
-
-Completed config validation includes:
-
-- Focused config tests: `10 passed`.
-- Full backend regression test with a temporary Chroma vector store path: `112 passed`.
-
-## Phase 6 Logging Validation 🪵
-
-The logging quality task verifies:
-
-- `configure_logging(force=True)` can rebuild handlers after environment changes.
-- `get_logger(__name__)` emits the shared timestamp, level, module, and message format.
-- Agent execution logs provider/model metadata, tool selection, tool completion, and tool failures.
-- API routes log request/response metadata without dumping user prompts or secret values.
-- RAG logs indexing and search counts, while the tool registry logs tool registration metadata.
-
-Completed logging validation includes:
-
-- Focused logger and affected-module tests: `19 passed`.
-- Compile check with a temporary `PYTHONPYCACHEPREFIX` to avoid locked local cache files.
-- Full backend regression test with a temporary Chroma vector store path: `115 passed`.
-
-## Phase 6 Exception Validation 🚦
-
-The exception quality task verifies:
-
-- Domain errors keep the existing `error` and `detail` response fields.
-- API errors include stable machine-readable `code` values such as `TOOL_ERROR` and `VALIDATION_ERROR`.
-- `X-Request-ID` is copied to `request_id` when present for response/log correlation.
-- Pydantic validation errors are passed through FastAPI's JSON encoder before response serialization.
-- API schemas document string, object, and list-shaped error details.
-
-Completed exception validation includes:
-
-- Focused exception/API schema tests: `20 passed`.
-- Compile check with a temporary `PYTHONPYCACHEPREFIX` to avoid locked local cache files.
-- Full backend regression test with a temporary Chroma vector store path: `115 passed`.
-
-## Phase 6 Expanded Test Validation 🧪
-
-The expanded testing task verifies:
-
-- LLM HTTP client payload construction, HTTP status wrapping, invalid payload handling, and chat content extraction errors.
-- Agent planner behavior for plain-text final answers, structured tool actions, and invalid structured JSON.
-- `AICodePilotAgent` facade request construction before delegating to the executor.
-- The backend test suite uses an isolated process-local `VECTOR_STORE_PATH` by default, preventing persisted local Chroma state from leaking into tests.
-- Compile checks continue to use a temporary `PYTHONPYCACHEPREFIX` to avoid locked local cache files.
-
-Completed expanded test validation includes:
-
-- Focused new and affected tests: `13 passed`.
-- Full backend regression test: `125 passed`.
-- Compile check with a temporary `PYTHONPYCACHEPREFIX`.
-
-## Phase 6 Ruff Validation 🧹
-
-The Ruff configuration task verifies:
-
-- `pyproject.toml` defines the first Python lint gate.
-- Ruff targets Python 3.10 and checks correctness-level rules `E` and `F`.
-- Generated/cache-heavy paths such as `.venv`, `.next`, `node_modules`, and `data/vector_store` are excluded.
-- Ruff cache writes go to a temporary project-specific directory to avoid local `.ruff_cache` permission noise.
-
-Completed Ruff validation includes:
-
-- `ruff check .`: passed.
-- Full backend regression test: `125 passed`.
-- Compile check with a temporary `PYTHONPYCACHEPREFIX`.
-
-## Phase 6 Black Validation
-
-The Black configuration task verifies:
-
-- `pyproject.toml` defines the project formatting gate.
-- Black targets Python 3.10 and uses the same 140-character line length as Ruff.
-- Generated/cache-heavy paths such as `.venv`, `.next`, `node_modules`, and `data/vector_store` are excluded.
-- Existing backend Python files and tests are formatted consistently before the check is enforced.
-
-Completed Black validation includes:
-
-- `black .`: reformatted existing Python files.
-- `black --check .`: passed.
-- `ruff check .`: passed after formatting.
-- Full backend regression test: `125 passed`.
-
-## Phase 6 Mypy Validation
-
-The mypy configuration task verifies:
-
-- `pyproject.toml` defines backend type checking for the `app` package.
-- `mypy_path = "backend"` and `explicit_package_bases = true` map imports consistently to `app.*`.
-- Third-party boundaries, including Chroma's broad vector-store API types, are contained with narrow casts at the integration edge.
-- The first type gate checks function bodies without forcing strict mode across every dependency and framework boundary.
-
-Completed mypy validation includes:
-
-- `mypy backend/app`: passed.
-- `black --check .`: passed.
-- `ruff check .`: passed.
-- Full backend regression test: `125 passed`.
-
-## Phase 6 CI Draft
-
-The GitHub Actions draft mirrors the local backend quality gates:
-
-- Install backend dependencies from `backend/requirements.txt`.
-- Run `ruff check .`.
-- Run `black --check .`.
-- Run `mypy backend/app`.
-- Run `pytest backend/tests`.
-
-The workflow is stored at `.github/workflows/ci.yml` and runs on pushes and pull requests targeting `main`.
-
-## Frontend Redesign Validation
-
-The redesigned frontend keeps the backend API contract unchanged while improving the product workspace:
-
-- `ChatWorkspace.tsx` owns the app shell, theme/language state, local auth mock, folder picker, project summary modal, chat composer, and API calls.
-- `ProviderSelector.tsx` owns the Model Hub catalog, domestic/global tabs, provider logos, available model selection, and disabled coming-soon model cards.
-- `ToolCallTimeline.tsx` renders bounded Agent Steps with status, action, outcome, running state, and overflow-safe text.
-- `CodeReference.tsx` renders bounded Code Evidence cards with file paths, line numbers, copy action, and highlighted snippets.
-- `globals.css` defines the light/dark visual system, three-column workspace grid, panel components, chat Markdown styling, code highlighting, modal layouts, and responsive behavior.
-
-Current frontend-only features:
-
-- Login, register, profile settings, captcha, avatar upload, and forgot-password flows are UI/localStorage mocks.
-- Browser folder selection is used for metadata preview and Project Summary generation. Real backend indexing still uses a backend-visible path.
-- GLM, Qwen, and Claude are shown as disabled coming-soon models until backend provider modules are added.
-
-Validation commands:
+# Development Guide
+
+AICodePilot is developed as an engineering-grade AI Agent project. Each change should preserve the core product goal: help developers understand, search, debug, and improve codebases through LLM Agent workflows.
+
+## 🧭 Development Principles
+
+- Keep the Agent core understandable and framework-light.
+- Prefer existing project patterns over new abstractions.
+- Keep file access, shell execution, and API-key handling inside documented safety boundaries.
+- Update documentation when user-facing behavior, architecture, setup, or validation changes.
+- Commit only after relevant validation passes.
+- Do not commit secrets, local cache folders, generated build artifacts, or private environment files.
+
+## 🧱 Repository Layout
+
+```text
+backend/
+  app/
+    agent/      Agent planner, executor, prompts, schemas, and patch helpers
+    api/        FastAPI routes and API schemas
+    core/       configuration, logging, exceptions, and project path mapping
+    llm/        provider abstraction, HTTP client, OpenAI, and DeepSeek providers
+    memory/     bounded conversation memory
+    rag/        scanning, chunking, embedding, vector store, and retrieval
+    tools/      safe tool implementations and registry
+  tests/        backend regression tests
+frontend/
+  app/          Next.js app shell and global styles
+  components/   workspace, provider selector, timeline, and evidence components
+  lib/          API client and shared frontend utilities
+docs/           architecture, API, deployment, security, and product docs
+```
+
+## ⚙️ Backend Workflow
+
+Install dependencies:
+
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Run the API:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Run backend tests:
+
+```bash
+pytest backend/tests
+```
+
+Run quality gates from the repository root:
+
+```bash
+ruff check .
+black --check .
+mypy backend/app
+```
+
+## 🖥️ Frontend Workflow
+
+Install dependencies:
 
 ```bash
 cd frontend
+npm install
+```
+
+Run development server:
+
+```bash
+npm run dev
+```
+
+Run frontend validation:
+
+```bash
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-Expected result:
+The frontend should remain synchronized with the backend API contract in `frontend/lib/api.ts`.
 
-- TypeScript succeeds.
-- ESLint succeeds. The app may warn about ordinary `<img>` usage for remote provider logos and local avatar data URLs; these are accepted for the current mock/profile workflow.
-- Next.js production build succeeds.
+## 🧪 Validation Policy
+
+Use the narrowest meaningful validation first, then run broader gates before committing.
+
+| Change Type | Required Validation |
+|---|---|
+| Backend Agent, tools, RAG, API, config | Focused pytest file plus `pytest backend/tests` |
+| Python style or typing | `ruff check .`, `black --check .`, `mypy backend/app` |
+| Frontend components or styles | `npm run typecheck`, `npm run lint`, `npm run build` |
+| Docker or environment changes | `docker compose up --build` when practical |
+| Documentation only | Encoding scan and manual consistency review |
+
+## 🔐 Security Rules
+
+- API keys belong in `.env`, never in source, logs, README examples, or committed screenshots.
+- File tools must remain constrained to the declared project root.
+- Binary and oversized file reads must be rejected clearly.
+- Shell execution must use allowlisted behavior, `shell=False`, timeout control, and destructive-command blocking.
+- Patch generation must produce reviewable diffs without modifying files automatically.
+
+## 🧠 Agent Boundaries
+
+The Agent should never return internal tool protocol JSON as the final user answer. Tool actions are implementation details that belong in `tool_calls` and the UI timeline. Final answers should be professional, readable, and grounded in references when available.
+
+When improving Agent behavior:
+
+- Keep the planner output parser strict.
+- Keep the final-answer synthesis prompt separate from the tool-selection prompt.
+- Add regression tests for any prompt protocol or parsing behavior.
+- Verify that malformed model output fails gracefully.
+
+## 📁 Workspace Import Boundaries
+
+Frontend folder and file import uses browser APIs for local previews. It does not grant the backend direct access to arbitrary local paths.
+
+Real indexing uses `/api/projects/index` and requires a backend-visible path. In Docker, use `PROJECTS_HOST_ROOT` and `PROJECTS_CONTAINER_ROOT` to mount projects into the backend container.
+
+Supported frontend import extensions are maintained in `frontend/components/ChatWorkspace.tsx`. Unsupported binary or office document formats must be blocked before import and explained to the user.
+
+## 🧾 Documentation Rules
+
+- Documentation must be pure English.
+- Keep titles concise and hierarchical.
+- Prefer short paragraphs, tables, and bullet lists over phase logs.
+- Keep the TodoList as a current roadmap board, not a historical journal.
+- Scan for CJK text and mojibake before committing documentation updates.
+
+Suggested scan:
+
+```bash
+rg -n -P "\p{Han}|[\x{FFFD}\x{9983}\x{9281}\x{9514}\x{6D93}\x{6D60}]" README.md docs frontend/components frontend/app -S
+```
+
+## ✅ Commit Checklist
+
+Before committing:
+
+1. Review `git diff`.
+2. Run the relevant validation commands.
+3. Confirm generated artifacts are ignored.
+4. Update docs when behavior changed.
+5. Use a Conventional Commit message.
+
+Example:
+
+```bash
+git commit -m "fix: harden frontend workspace import and docs"
+```
