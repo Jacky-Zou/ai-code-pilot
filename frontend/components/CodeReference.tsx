@@ -28,13 +28,11 @@ export function CodeReference({ references }: CodeReferenceProps) {
     <section className="panel-card insight-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Evidence</p>
           <h2>Code Evidence</h2>
+          <p className="panel-description">Referenced files, line numbers, and snippets.</p>
         </div>
         <Search className="h-5 w-5 text-accent" aria-hidden="true" />
       </div>
-
-      <p className="panel-subtitle">Files, line numbers, and snippets used by the Agent.</p>
 
       {references.length === 0 ? (
         <div className="timeline-skeleton">

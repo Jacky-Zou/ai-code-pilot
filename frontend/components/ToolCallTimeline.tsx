@@ -56,13 +56,11 @@ export function ToolCallTimeline({ isRunning = false, toolCalls }: ToolCallTimel
     <section className="panel-card insight-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Trace</p>
-          <h2>Agent Steps</h2>
+          <h2>Agent Trace</h2>
+          <p className="panel-description">Planning, tool execution, and status updates.</p>
         </div>
         <GitBranch className="h-5 w-5 text-primary" aria-hidden="true" />
       </div>
-
-      <p className="panel-subtitle">Live planning, tool execution, and evidence generation state.</p>
 
       {displayCalls.length === 0 ? (
         <div className="timeline-skeleton">

@@ -5,6 +5,7 @@
 import {
   AlertCircle,
   Bot,
+  Boxes,
   CheckCircle2,
   ChevronDown,
   Code2,
@@ -15,6 +16,8 @@ import {
   Loader2,
   LogIn,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Send,
   Settings,
   Sun,
@@ -362,12 +365,18 @@ function WorkspaceTree({ nodes }: { nodes: WorkspaceNode[] }) {
   );
 }
 
+function ModelCenterIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return <Boxes className={className} aria-hidden="true" />;
+}
+
 export function ChatWorkspace() {
   const [selection, setSelection] = useState<ProviderSelection>({ provider: "deepseek", model: "deepseek-v4-pro" });
   const [theme, setTheme] = useState<Theme>("light");
+  const [isLeftRailCollapsed, setIsLeftRailCollapsed] = useState(false);
   const [projectPath, setProjectPath] = useState(DEFAULT_PROJECT_PATH);
   const [workspaceTree, setWorkspaceTree] = useState<WorkspaceNode[]>([]);
   const [message, setMessage] = useState("");
+  const [composerNudge, setComposerNudge] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
@@ -386,6 +395,7 @@ export function ChatWorkspace() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const latestResponse = useMemo(
@@ -420,6 +430,12 @@ export function ChatWorkspace() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isSending, error]);
+
+  useEffect(() => {
+    if (!composerNudge) return;
+    const timeoutId = window.setTimeout(() => setComposerNudge(false), 2200);
+    return () => window.clearTimeout(timeoutId);
+  }, [composerNudge]);
 
   async function handleFolderChange(event: ChangeEvent<HTMLInputElement>) {
     const selectedFiles = Array.from(event.target.files ?? []);
@@ -488,7 +504,12 @@ export function ChatWorkspace() {
   async function handleSubmit(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     const trimmedMessage = message.trim();
-    if (!trimmedMessage || isSending) return;
+    if (isSending) return;
+    if (!trimmedMessage) {
+      setComposerNudge(true);
+      composerRef.current?.focus();
+      return;
+    }
     if (!authUser) {
       openAuthMode("login");
       return;
@@ -587,21 +608,32 @@ export function ChatWorkspace() {
         </div>
 
         <div className="top-actions">
-          <div className={`status-chip ${backendReady ? "ready" : "warning"}`}>
+          <div
+            aria-label={backendReady ? "Backend API ready" : "Backend API unavailable"}
+            className={`status-chip app-tooltip ${backendReady ? "ready" : "warning"}`}
+            data-tooltip={backendReady ? "Backend API ready" : "Backend API unavailable"}
+            role="status"
+          >
             {backendReady ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-            {backendReady ? "Backend API ready" : "Backend API unavailable"}
           </div>
           <button
-            className="icon-button"
+            aria-label="Toggle theme"
+            className="icon-button app-tooltip"
+            data-tooltip={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
             onClick={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
-            title="Toggle theme"
             type="button"
           >
             {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
           {authUser ? (
             <div className="relative">
-              <button className="user-button" onClick={() => setIsUserMenuOpen((open) => !open)} type="button">
+              <button
+                aria-label="Open user menu"
+                className="user-button app-tooltip"
+                data-tooltip="Account menu"
+                onClick={() => setIsUserMenuOpen((open) => !open)}
+                type="button"
+              >
                 <img alt="" src={authUser.avatarUrl} />
                 <span>{authUser.name}</span>
                 <ChevronDown className="h-4 w-4" />
@@ -639,19 +671,66 @@ export function ChatWorkspace() {
         </div>
       </header>
 
-      <section className="workspace-grid">
+      <section className={`workspace-grid ${isLeftRailCollapsed ? "left-collapsed" : ""}`}>
         <aside className="workspace-column left-rail">
-          <ProviderSelector onChange={setSelection} value={selection} />
+          <div className="sidebar-brand-row">
+            <button
+              aria-label={isLeftRailCollapsed ? "Expand sidebar" : "AICodePilot home"}
+              className="sidebar-logo-button app-tooltip"
+              data-tooltip={isLeftRailCollapsed ? "Open sidebar" : ""}
+              onClick={() => {
+                if (isLeftRailCollapsed) setIsLeftRailCollapsed(false);
+              }}
+              type="button"
+            >
+              <Bot className="sidebar-brand-icon h-5 w-5" aria-hidden="true" />
+              <PanelLeftOpen className="sidebar-expand-icon h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              aria-label="Collapse sidebar"
+              className="rail-toggle-button app-tooltip"
+              data-tooltip="Collapse sidebar"
+              onClick={() => setIsLeftRailCollapsed(true)}
+              type="button"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
+          </div>
 
-          <section className="panel-card workspace-panel">
+          <nav className="collapsed-rail-actions" aria-label="Collapsed sidebar shortcuts">
+            <button
+              aria-label="Open model center"
+              className="collapsed-rail-button app-tooltip"
+              data-tooltip="Model Center"
+              onClick={() => setIsLeftRailCollapsed(false)}
+              type="button"
+            >
+              <ModelCenterIcon />
+            </button>
+            <button
+              aria-label="Open workspace"
+              className="collapsed-rail-button workspace-shortcut app-tooltip"
+              data-tooltip="Workspace"
+              onClick={() => setIsLeftRailCollapsed(false)}
+              type="button"
+            >
+              <FolderOpen className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </nav>
+
+          <div className="left-rail-body">
+            <ProviderSelector onChange={setSelection} value={selection} />
+
+            <section className="panel-card workspace-panel">
             <div className="panel-heading">
               <div>
-                <p className="panel-kicker">Workspace</p>
-                <h2>Open project or file</h2>
+                <h2>Workspace</h2>
+                <p className="panel-description">Import code and index a backend-visible path.</p>
               </div>
-              <FolderOpen className="h-5 w-5 text-accent" aria-hidden="true" />
+              <FolderOpen className="h-5 w-5 text-folder" aria-hidden="true" />
             </div>
 
+            <p className="field-label">Local Import</p>
             <div className="workspace-actions">
               <label className="secondary-button file-picker-button">
                 <FolderOpen className="h-4 w-4" />
@@ -672,7 +751,7 @@ export function ChatWorkspace() {
             </div>
 
             <label className="field-label" htmlFor="project-path">
-              Backend-visible path
+              Backend Path
             </label>
             <input
               className="field-input"
@@ -686,13 +765,13 @@ export function ChatWorkspace() {
             </p>
 
             <button
-              className="accent-button w-full"
+              className="primary-button w-full"
               disabled={isIndexing || !projectPath.trim()}
               onClick={handleIndexProject}
               type="button"
             >
               {isIndexing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-              {isIndexing ? "Indexing" : "Index workspace"}
+              {isIndexing ? "Indexing" : "Index Workspace"}
             </button>
 
             {indexStats ? (
@@ -703,7 +782,8 @@ export function ChatWorkspace() {
             ) : null}
             {indexError ? <div className="error-box mt-3">{indexError}</div> : null}
             <WorkspaceTree nodes={workspaceTree} />
-          </section>
+            </section>
+          </div>
         </aside>
 
         <section className="chat-panel">
@@ -783,19 +863,30 @@ export function ChatWorkspace() {
           </div>
 
           <form className="composer" onSubmit={handleSubmit}>
+            {composerNudge ? <div className="composer-empty-hint">Type a message before sending.</div> : null}
             <textarea
+              aria-invalid={composerNudge}
+              className={composerNudge ? "needs-input" : ""}
               disabled={isSending}
               maxLength={32000}
-              onChange={(event) => setMessage(event.target.value)}
+              onBlur={() => setComposerNudge(false)}
+              onChange={(event) => {
+                setMessage(event.target.value);
+                if (event.target.value.trim()) setComposerNudge(false);
+              }}
+              onFocus={() => {
+                if (message.trim()) setComposerNudge(false);
+              }}
               onKeyDown={handleComposerKeyDown}
               placeholder="Ask about this codebase. Shift + Enter for a new line..."
+              ref={composerRef}
               value={message}
             />
             <div className="composer-footer">
               <span className={message.length > 12000 ? "text-warning" : ""}>
                 {message.length > 12000 ? "Long prompt. Check the selected model context window." : `${message.length.toLocaleString()} chars`}
               </span>
-              <button className="send-button" disabled={isSending || !message.trim()} type="submit">
+              <button className="send-button" disabled={isSending} type="submit">
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 <span>Send</span>
               </button>

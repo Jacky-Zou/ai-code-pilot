@@ -1,7 +1,9 @@
 "use client";
 
-import { Boxes, Check, Cpu, Globe2, Landmark, Lock } from "lucide-react";
-import { useMemo, useState } from "react";
+/* eslint-disable @next/next/no-img-element */
+
+import { Boxes, Check, ChevronDown, Globe2, Landmark, Lock } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import type { ProviderName } from "@/lib/api";
 
 export type Language = "en";
@@ -10,6 +12,7 @@ type ProviderRegion = "domestic" | "global";
 type ProviderOption = {
   description: string;
   label: string;
+  logoSrc: string;
   logoText: string;
   provider: ProviderName;
   region: ProviderRegion;
@@ -29,6 +32,7 @@ const PROVIDERS: ProviderOption[] = [
   {
     description: "Strong coding and repository reasoning provider.",
     label: "DeepSeek",
+    logoSrc: "/provider-logos/domestic/deepseek_logo.jpg",
     logoText: "DS",
     provider: "deepseek",
     region: "domestic",
@@ -37,6 +41,7 @@ const PROVIDERS: ProviderOption[] = [
   {
     description: "OpenAI models for advanced agentic coding workflows.",
     label: "OpenAI",
+    logoSrc: "/provider-logos/overseas/open-ai_logo.jpg",
     logoText: "AI",
     provider: "openai",
     region: "global",
@@ -45,6 +50,7 @@ const PROVIDERS: ProviderOption[] = [
   {
     description: "Planned long-context Chinese engineering provider.",
     label: "Zhipu GLM",
+    logoSrc: "/provider-logos/domestic/zhipu-glm_logo.png",
     logoText: "GLM",
     provider: "zhipu",
     region: "domestic",
@@ -53,6 +59,7 @@ const PROVIDERS: ProviderOption[] = [
   {
     description: "Planned coding provider for generation and refactoring.",
     label: "Qwen",
+    logoSrc: "/provider-logos/domestic/qwen_logo.jpg",
     logoText: "QW",
     provider: "qwen",
     region: "domestic",
@@ -61,6 +68,7 @@ const PROVIDERS: ProviderOption[] = [
   {
     description: "Planned provider for review and architecture analysis.",
     label: "Anthropic Claude",
+    logoSrc: "/provider-logos/overseas/claude_logo.jpg",
     logoText: "CL",
     provider: "claude",
     region: "global",
@@ -125,17 +133,20 @@ export interface ProviderSelectorProps {
 function ProviderLogo({ provider }: { provider: ProviderOption }) {
   return (
     <span className={`provider-logo provider-logo-${provider.provider}`} aria-hidden="true">
-      {provider.logoText}
+      <img alt="" onError={(event) => event.currentTarget.remove()} src={provider.logoSrc} />
+      <span>{provider.logoText}</span>
     </span>
   );
 }
 
 export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
   const [region, setRegion] = useState<ProviderRegion>("domestic");
+  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const [internalValue, setInternalValue] = useState<ProviderSelection>({
     provider: "deepseek",
     model: "deepseek-v4-pro"
   });
+  const modelMenuRef = useRef<HTMLDivElement | null>(null);
 
   const selection = value ?? internalValue;
   const visibleProviders = PROVIDERS.filter((provider) => provider.region === region);
@@ -144,8 +155,7 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
     () => MODELS.filter((model) => model.provider === selection.provider),
     [selection.provider]
   );
-  const selectedModel =
-    MODELS.find((model) => model.provider === selection.provider && model.model === selection.model) ?? providerModels[0];
+  const selectedModel = providerModels.find((model) => model.model === selection.model) ?? providerModels[0];
 
   function commit(nextSelection: ProviderSelection) {
     if (value === undefined) {
@@ -159,18 +169,20 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
     const firstModel = MODELS.find((model) => model.provider === provider.provider && model.status === "available");
     if (!firstModel) return;
     commit({ provider: provider.provider, model: firstModel.model });
+    setIsModelMenuOpen(false);
   }
 
   return (
     <section className="panel-card model-provider-panel" aria-label="Model provider">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Model Provider</p>
           <h2>Model Center</h2>
+          <p className="panel-description">Choose the provider and active coding model.</p>
         </div>
         <Boxes className="h-5 w-5 text-primary" aria-hidden="true" />
       </div>
 
+      <p className="field-label">Model Provider</p>
       <div className="segmented-control model-region-tabs" role="tablist" aria-label="Model source">
         <button className={region === "domestic" ? "active" : ""} onClick={() => setRegion("domestic")} type="button">
           <Landmark className="h-3.5 w-3.5" aria-hidden="true" />
@@ -207,37 +219,60 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
         })}
       </div>
 
-      <label className="field-label" htmlFor="model-select">
-        Model
+      <label className="field-label" id="model-select-label">
+        Current Model
       </label>
-      <select
-        className="field-input"
-        id="model-select"
-        onChange={(event) => commit({ provider: selection.provider, model: event.target.value })}
-        value={selection.model}
+      <div
+        className="model-select"
+        onBlur={(event) => {
+          if (!modelMenuRef.current?.contains(event.relatedTarget as Node | null)) {
+            setIsModelMenuOpen(false);
+          }
+        }}
+        ref={modelMenuRef}
       >
-        {providerModels.map((model) => (
-          <option disabled={model.status !== "available"} key={model.id} value={model.model}>
-            {model.name}
-            {model.status !== "available" ? " (coming soon)" : ""}
-          </option>
-        ))}
-      </select>
-
-      {selectedModel ? (
-        <div className="provider-model-row selected">
-          <span className="provider-model-icon">
-            <Cpu className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <span className="provider-model-copy">
-            <span className="provider-model-title">
-              {selectedModel.name}
-              <Check className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-            </span>
-            <span>{selectedModel.description}</span>
-          </span>
-        </div>
-      ) : null}
+        <button
+          aria-expanded={isModelMenuOpen}
+          aria-haspopup="listbox"
+          aria-labelledby="model-select-label"
+          className="model-select-trigger"
+          onClick={() => setIsModelMenuOpen((open) => !open)}
+          type="button"
+        >
+          <span>{selectedModel?.name ?? "Select model"}</span>
+          <ChevronDown className={`h-4 w-4 ${isModelMenuOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+        </button>
+        {isModelMenuOpen ? (
+          <div className="model-select-menu" role="listbox" aria-labelledby="model-select-label">
+            {providerModels.map((model) => {
+              const isSelected = model.model === selection.model;
+              const isDisabled = model.status !== "available";
+              return (
+                <button
+                  aria-selected={isSelected}
+                  className={`model-select-option ${isSelected ? "selected" : ""}`}
+                  disabled={isDisabled}
+                  key={model.id}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    commit({ provider: selection.provider, model: model.model });
+                    setIsModelMenuOpen(false);
+                  }}
+                  role="option"
+                  type="button"
+                >
+                  <span>
+                    <strong>{model.name}</strong>
+                    <small>{model.description}</small>
+                  </span>
+                  {isSelected ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+                  {isDisabled ? <Lock className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
