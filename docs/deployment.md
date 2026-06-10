@@ -1,15 +1,49 @@
 # Deployment
 
-AICodePilot supports three deployment modes: backend-only development, frontend/backend local development, and Docker Compose for a complete demo stack.
+AICodePilot supports three deployment modes: one-command local development without Docker, manual frontend/backend local development, and optional Docker Compose for a containerized demo stack.
 
 ## Prerequisites
 
 - Python 3.10+
 - Node.js 20+
-- Docker Desktop with Docker Compose v2
 - A local `.env` copied from `.env.example`
 
 Keep real API keys only in `.env`. The repository tracks `.env.example` with placeholders and ignores `.env` through `.gitignore`.
+
+Docker Desktop with Docker Compose v2 is only needed for the optional Docker Compose mode.
+
+## Local Full Stack
+
+From the repository root:
+
+```powershell
+cp .env.example .env
+powershell -ExecutionPolicy Bypass -File scripts/start-local.ps1
+```
+
+The script starts:
+
+| Service | URL | Purpose |
+|---|---|---|
+| backend | `http://localhost:8000` | FastAPI Agent and RAG API |
+| frontend | `http://localhost:3000` | Next.js Web UI |
+
+The script opens two visible PowerShell windows so backend and frontend logs stay easy to inspect:
+
+```text
+Backend:  python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+Frontend: npm run dev -- --hostname 127.0.0.1 --port 3000
+```
+
+Stop the app by pressing `Ctrl+C` in those windows or closing them.
+
+When launched from Codex or another sandboxed terminal, the script removes sandbox-only PATH shims before starting Node.js so Next.js can spawn its normal child processes.
+
+If dependencies are missing, install them once before startup:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start-local.ps1 -Install
+```
 
 ## Local Backend
 
@@ -62,6 +96,8 @@ npm run start:fresh
 `npm run start` serves the existing `.next` production build. If the old process is still running, stop it before reviewing a new build.
 
 ## Docker Compose
+
+Docker Compose is optional. The project does not require Docker for normal local use.
 
 From the repository root:
 

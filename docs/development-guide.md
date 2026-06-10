@@ -33,6 +33,18 @@ docs/           architecture, API, deployment, security, and product docs
 
 ## ⚙️ Backend Workflow
 
+Run the full local application without Docker:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start-local.ps1
+```
+
+Stop the local application:
+
+Press Ctrl+C in the backend and frontend PowerShell windows, or close those windows.
+
+The startup script opens visible terminal windows instead of hidden background services, so logs and shutdown behavior are explicit.
+
 Install dependencies:
 
 ```bash
@@ -96,7 +108,8 @@ Use the narrowest meaningful validation first, then run broader gates before com
 | Backend Agent, tools, RAG, API, config | Focused pytest file plus `pytest backend/tests` |
 | Python style or typing | `ruff check .`, `black --check .`, `mypy backend/app` |
 | Frontend components or styles | `npm run typecheck`, `npm run lint`, `npm run build` |
-| Docker or environment changes | `docker compose up --build` when practical |
+| Docker-only changes | `docker compose up --build` when practical |
+| Local startup changes | `scripts/start-local.ps1`, backend health check, and frontend HTTP check |
 | Documentation only | Encoding scan and manual consistency review |
 
 ## 🔐 Security Rules

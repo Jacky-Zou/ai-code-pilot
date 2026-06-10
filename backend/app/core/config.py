@@ -138,6 +138,8 @@ class Settings(BaseSettings):
             self.llm_model = self.default_model_for_provider(self.llm_provider)
         if self.vector_store_path.as_posix().strip() in {"", "."}:
             raise ValueError("VECTOR_STORE_PATH must point to a project data directory")
+        if not self.vector_store_path.is_absolute():
+            self.vector_store_path = PROJECT_ROOT / self.vector_store_path
         return self
 
     def default_model_for_provider(self, provider_name: str | None = None) -> str:

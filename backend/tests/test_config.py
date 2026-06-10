@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import Settings, get_settings
+from app.core.config import PROJECT_ROOT, Settings, get_settings
 
 
 @pytest.fixture(autouse=True)
@@ -45,7 +45,7 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.openai_model == "gpt-5.2"
     assert settings.deepseek_model == "deepseek-v4-pro"
     assert settings.embedding_model == "text-embedding-3-small"
-    assert settings.vector_store_path == Path("data/vector_store")
+    assert settings.vector_store_path == PROJECT_ROOT / "data/vector_store"
     assert settings.vector_store_backend == "chroma"
     assert settings.projects_host_root is None
     assert settings.projects_container_root == "/workspace"
@@ -75,7 +75,7 @@ def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.default_model_for_provider() == "deepseek-reasoner"
     assert settings.openai_base_url == "https://proxy.example.com/v1"
     assert settings.embedding_provider == "local"
-    assert settings.vector_store_path == Path("tmp/vectors")
+    assert settings.vector_store_path == PROJECT_ROOT / "tmp/vectors"
     assert settings.vector_store_backend == "json"
     assert settings.projects_host_root == "D:/code/projects"
     assert settings.projects_container_root == "/workspace"

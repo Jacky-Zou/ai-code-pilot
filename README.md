@@ -2,7 +2,7 @@
 
 AICodePilot is an AI coding assistant for codebase understanding, semantic search, log analysis, tool calling, patch suggestions, and developer workflow support.
 
-The project is built as an engineering-grade LLM Agent system rather than a simple chat demo. It includes a handwritten Agent loop, a safe tool layer, RAG retrieval, multi-provider LLM abstraction, FastAPI APIs, a Next.js workspace UI, tests, Docker deployment, and documentation.
+The project is built as an engineering-grade LLM Agent system rather than a simple chat demo. It includes a handwritten Agent loop, a safe tool layer, RAG retrieval, multi-provider LLM abstraction, FastAPI APIs, a Next.js workspace UI, tests, local no-Docker startup, optional Docker deployment, and documentation.
 
 ## Features
 
@@ -12,7 +12,7 @@ The project is built as an engineering-grade LLM Agent system rather than a simp
 - RAG pipeline with project scanning, line-based chunking, embeddings, vector storage, and Top-K retrieval.
 - FastAPI backend for health, chat, project indexing, and project search.
 - Next.js frontend with Model Center, Workspace management, Agent Chat, Agent Steps, Code Evidence, and Project Summary.
-- Docker Compose deployment for backend and frontend.
+- No-Docker local startup for backend and frontend, with Docker Compose kept as an optional deployment path.
 - CI-ready gates for tests, linting, formatting, and typing.
 
 ## Architecture
@@ -48,7 +48,7 @@ Key modules:
 | Frontend | Next.js 15, React 18, TypeScript, Tailwind CSS, lucide-react |
 | Markdown | react-markdown, remark-gfm, rehype-highlight |
 | Quality | pytest, ruff, black, mypy, ESLint, TypeScript |
-| Deployment | Docker, docker-compose, environment-based configuration |
+| Deployment | Local PowerShell scripts, optional Docker Compose, environment-based configuration |
 
 ## Model Providers
 
@@ -93,6 +93,26 @@ cp .env.example .env
 
 Add real API keys only to `.env`. The file is ignored by Git.
 
+Start the full local stack without Docker:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start-local.ps1
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+The script opens two visible PowerShell windows: one for the FastAPI backend and one for the Next.js frontend. Stop the app by pressing `Ctrl+C` in those windows or closing them.
+
+When launched from Codex, the script also removes sandbox-only PATH entries before starting Node.js so Next.js can run normally.
+
+If dependencies are missing, run the same command once with `-Install`.
+
+## Manual Local Run
+
 Start the backend:
 
 ```bash
@@ -130,9 +150,9 @@ Open:
 http://127.0.0.1:3000
 ```
 
-## Docker
+## Optional Docker
 
-Run the full stack:
+Docker is not required for normal local development. If you still want a containerized demo stack, run:
 
 ```bash
 docker compose up --build
