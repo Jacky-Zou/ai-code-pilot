@@ -24,6 +24,7 @@ export interface ChatRequest {
   project_path?: string | null;
   provider?: ProviderName | null;
   model?: string | null;
+  conversation_id?: string | null;
 }
 
 export interface ChatResponse {
@@ -32,6 +33,8 @@ export interface ChatResponse {
   model: string;
   tool_calls: ToolResult[];
   references: CodeReference[];
+  conversation_id: string;
+  patch_suggestions?: unknown[];
 }
 
 export interface ProjectIndexRequest {
