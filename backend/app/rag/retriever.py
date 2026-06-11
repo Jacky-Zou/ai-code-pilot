@@ -34,6 +34,7 @@ class CodeRetriever:
         embedding_client: BaseEmbeddingClient | None = None,
         vector_store: BaseVectorStore | None = None,
         settings: Settings | None = None,
+        collection_name: str = "aicodepilot_code",
     ) -> None:
         self.settings = settings or get_settings()
         self._vector_store_injected = vector_store is not None
@@ -43,6 +44,7 @@ class CodeRetriever:
         self.vector_store = vector_store or create_vector_store(
             backend=self.settings.vector_store_backend,
             persist_directory=self.settings.vector_store_path,
+            collection_name=collection_name,
         )
 
     def index_project(self, project_path: str | Path, save_path: str | Path | None = None) -> dict[str, int]:
