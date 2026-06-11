@@ -1,8 +1,10 @@
+from app.core.config import get_settings
 from app.core.exceptions import ToolError
 from app.core.logger import get_logger
 from app.tools.base import BaseTool
 from app.tools.file_tools import FindFilesTool, ListFilesTool, ProjectTreeTool, ReadFileTool
 from app.tools.log_tools import AnalyzeLogTool
+from app.tools.patch_tools import ProposePatchTool
 from app.tools.rag_tools import RetrieveCodeTool
 from app.tools.search_tools import SearchTextTool
 from app.tools.shell_tools import RunCommandTool
@@ -42,6 +44,11 @@ def create_default_registry() -> ToolRegistry:
     registry.register(SearchTextTool())
     registry.register(RetrieveCodeTool())
     registry.register(AnalyzeLogTool())
-    registry.register(RunCommandTool())
+    registry.register(ProposePatchTool())
+    # shell tool is disabled by default to reduce attack surface;
+    # enable via ENABLE_SHELL_TOOL=true in the environment
+    settings = get_settings()
+    if getattr(settings, "enable_shell_tool", False):
+        registry.register(RunCommandTool())
     logger.info("Default tool registry created tools=%s", [tool.name for tool in registry.list_tools()])
     return registry

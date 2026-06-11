@@ -69,4 +69,32 @@ def test_default_registry_contains_agent_tools() -> None:
     assert isinstance(registry.get("search_text"), SearchTextTool)
     assert isinstance(registry.get("retrieve_code"), RetrieveCodeTool)
     assert isinstance(registry.get("analyze_log"), AnalyzeLogTool)
+    # run_command is gated by ENABLE_SHELL_TOOL (default False); not in default registry.
+    # Verify it is absent rather than present.
+    with pytest.raises(ToolError, match="Tool not found"):
+        registry.get("run_command")
+
+
+def test_default_registry_contains_propose_patch() -> None:
+    """propose_patch must be registered by default (T-9)."""
+
+    from app.tools.patch_tools import ProposePatchTool
+
+    registry = create_default_registry()
+    assert isinstance(registry.get("propose_patch"), ProposePatchTool)
+
+
+def test_shell_tool_registered_when_enabled(monkeypatch) -> None:
+    """run_command is registered when ENABLE_SHELL_TOOL=true."""
+
+    monkeypatch.setenv("ENABLE_SHELL_TOOL", "true")
+    # Force settings to reload with new env
+    import importlib
+    import app.core.config as cfg_module
+    cfg_module.get_settings.cache_clear()
+
+    registry = create_default_registry()
     assert isinstance(registry.get("run_command"), RunCommandTool)
+
+    # Restore
+    cfg_module.get_settings.cache_clear()
