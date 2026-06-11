@@ -113,8 +113,13 @@ class CodeRetriever:
             file_token_hits = sum(1 for token in tokens if token in file_path_text)
             exact_query_bonus = 0.2 if query.lower() in searchable else 0.0
             source_bonus = self._source_file_bonus(chunk.file_path)
-            intent_bonus = self._intent_file_bonus(tokens, chunk.file_path)
-            hybrid_score = chunk.score + (0.08 * token_hits) + (0.16 * file_token_hits) + exact_query_bonus + source_bonus + intent_bonus
+            hybrid_score = (
+                chunk.score
+                + (0.08 * token_hits)
+                + (0.16 * file_token_hits)
+                + exact_query_bonus
+                + source_bonus
+            )
             reranked.append(
                 RetrievedChunk(
                     file_path=chunk.file_path,
@@ -126,22 +131,21 @@ class CodeRetriever:
             )
         return sorted(reranked, key=lambda chunk: chunk.score, reverse=True)
 
-    def _intent_file_bonus(self, tokens: list[str], file_path: str) -> float:
-        normalized = file_path.replace("\\", "/").lower()
-        token_set = set(tokens)
-        if {"config", "settings", "env", "environment"} & token_set and normalized.endswith("backend/app/core/config.py"):
-            return 0.25
-        if {"registry", "toolregistry"} & token_set and normalized.endswith("backend/app/tools/registry.py"):
-            return 0.2
-        if {"agentexecutor", "executor"} & token_set and normalized.endswith("backend/app/agent/executor.py"):
-            return 0.2
-        return 0.0
-
     def _source_file_bonus(self, file_path: str) -> float:
+        """Generic source-file quality signal, project-agnostic.
+
+        Rewards files in common source code directories (src/, lib/, app/, pkg/)
+        and penalises test/documentation files. This heuristic does not reference
+        any specific project layout so it works across arbitrary repositories.
+        """
+
         normalized = file_path.replace("\\", "/")
         if any(marker in normalized for marker in _TEST_OR_DOC_MARKERS):
             return -0.12
-        if normalized.startswith("backend/app/") or normalized.startswith("frontend/"):
+        # Generic source-directory bonus: common layout conventions across
+        # languages (Go, Python, JS/TS, Rust, Java, etc.)
+        _SOURCE_DIR_MARKERS = ("src/", "lib/", "app/", "pkg/", "cmd/", "internal/")
+        if any(normalized.startswith(marker) or f"/{marker}" in normalized for marker in _SOURCE_DIR_MARKERS):
             return 0.12
         if normalized.endswith("requirements.txt") or normalized.endswith(".md"):
             return -0.08
