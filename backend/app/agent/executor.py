@@ -118,31 +118,123 @@ class AgentExecutor:
         )
 
     def run_stream(self, request: AgentRequest) -> Iterator[Any]:
-        """Stream agent execution as AgentEvent objects.
+        """Stream agent execution as AgentEvent objects (T-6).
 
-        Yields AgentEvent instances for each significant step (thinking, tool
-        start/end, answer delta, done, error). Fully implemented in T-6 once
-        the events module is in place. This stub yields a single done event so
-        the SSE endpoint compiles and routes_chat.py works end-to-end.
+        Yields events for each significant step:
+          thinking    — emitted at the start of each LLM call step
+          tool_start  — emitted before a tool is executed
+          tool_end    — emitted after a tool completes (with error field)
+          done        — final event with complete answer + metadata
+          error       — emitted if an unrecoverable exception occurs
+
+        The implementation re-uses the same setup as run() but drives the tool
+        calling loop inline so it can yield events between steps. Falls back to
+        a single done event when the provider does not support tool calling.
         """
 
         from app.agent.events import AgentEvent
 
+        provider_name = (request.provider or self.settings.llm_provider).strip().lower()
+        model = request.model or self.settings.default_model_for_provider(provider_name)
+        llm = self.llm_provider or LLMProviderFactory.create(provider_name, settings=self.settings)
+
+        tools_schema = self.registry.describe_tools()
+        user_content = self._build_user_content(request)
+        max_steps = getattr(self.settings, "agent_max_steps", _MAX_TOOL_STEPS)
+
+        tool_results: list[ToolResult] = []
+        answer = ""
+
         try:
-            response = self.run(request)
-            yield AgentEvent(
-                type="done",
-                data={
-                    "answer": response.answer,
-                    "provider": response.provider,
-                    "model": response.model,
-                    "tool_calls": [tc.model_dump() for tc in response.tool_calls],
-                    "references": [r.model_dump() for r in response.references],
-                    "patch_suggestions": [p.model_dump() for p in response.patch_suggestions],
-                },
+            system_prompt = build_system_prompt_for_tool_calling()
+            messages = self._build_messages(system_prompt, user_content)
+
+            last_call_signature: tuple[str, str] | None = None
+
+            for step in range(1, max_steps + 1):
+                yield AgentEvent(type="thinking", data={"step": step})
+
+                result: ChatResult = llm.chat_with_tools(list(messages), tools=tools_schema, model=model)
+
+                if result.is_final:
+                    answer = result.content or ""
+                    break
+
+                assistant_msg: dict[str, Any] = {
+                    "role": "assistant",
+                    "content": result.content,
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.name,
+                                "arguments": json.dumps(tc.arguments, ensure_ascii=False),
+                            },
+                        }
+                        for tc in result.tool_calls
+                    ],
+                }
+                messages.append(assistant_msg)
+
+                for tc in result.tool_calls:
+                    call_sig = (tc.name, json.dumps(tc.arguments, sort_keys=True))
+                    if call_sig == last_call_signature:
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": tc.id,
+                                "content": "Error: identical tool call detected. Please provide a final answer.",
+                            }
+                        )
+                        logger.warning("Stream: loop detected tool=%s step=%s", tc.name, step)
+                        continue
+                    last_call_signature = call_sig
+
+                    yield AgentEvent(type="tool_start", data={"tool": tc.name, "arguments": tc.arguments})
+                    tool_result = self._execute_native_tool_call(tc, request)
+                    tool_results.append(tool_result)
+                    yield AgentEvent(
+                        type="tool_end",
+                        data={"tool": tc.name, "error": tool_result.error},
+                    )
+
+                    result_content = json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str)
+                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_content})
+
+            else:
+                # Budget exhausted
+                answer = self._request_final_summary(llm, messages, model)
+
+        except NotImplementedError:
+            # Provider does not support tool calling — run synchronously and emit done
+            logger.warning("Stream: provider %s has no tool calling, falling back", provider_name)
+            system_prompt = build_system_prompt(tools_schema)
+            messages = self._build_messages(system_prompt, user_content)
+            answer, tool_results = self._run_text_protocol_loop(
+                llm=llm, messages=messages, request=request, model=model, max_steps=max_steps
             )
-        except Exception as exc:
-            yield AgentEvent(type="error", data={"detail": str(exc)})
+
+        answer = self._clean_final_answer(answer, tool_results, user_content)
+        if not answer:
+            answer = self._build_fallback_answer(tool_results, user_content)
+
+        self._remember_turn(request.message, answer)
+
+        references = self._extract_references_from_results(tool_results)
+        patch_suggestions = self._extract_patch_suggestions_from_results(tool_results)
+
+        yield AgentEvent(
+            type="done",
+            data={
+                "answer": answer,
+                "provider": provider_name,
+                "model": model,
+                "tool_calls": [tc.model_dump() for tc in tool_results],
+                "references": [r.model_dump() for r in references],
+                "patch_suggestions": [p.model_dump() for p in patch_suggestions],
+            },
+        )
 
     # ------------------------------------------------------------------
     # Tool-calling loop (primary path: OpenAI function-calling protocol)
