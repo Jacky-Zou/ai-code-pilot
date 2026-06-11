@@ -118,7 +118,7 @@ class AgentExecutor:
             answer = self._build_fallback_answer(tool_results, user_content)
         answer = self._clean_final_answer(answer, tool_results, user_content)
 
-        self._remember_turn(user_content, answer, tool_results[-1] if tool_results else None)
+        self._remember_turn(request.message, answer)
         logger.info(
             "Agent run completed provider=%s model=%s tool_calls=%s",
             provider_name,
@@ -323,13 +323,26 @@ class AgentExecutor:
         messages.append({"role": "user", "content": user_content})
         return messages
 
-    def _remember_turn(self, user_content: str, assistant_content: str, tool_result: ToolResult | None = None) -> None:
+    def _remember_turn(self, original_message: str, assistant_content: str) -> None:
+        """Persist only the user's original question and the agent's final answer.
+
+        Tool-call payloads are intentionally excluded from rolling memory: they are
+        large, single-turn artifacts, and replaying them into later prompts biases
+        weaker providers into repeating tool calls unnecessarily. The final answer
+        already encodes whatever information the tools surfaced.
+
+        We store `original_message` (the raw user text) rather than the decorated
+        `user_content` that includes the project_path prefix—otherwise multi-turn
+        prompts accumulate redundant path prefixes in every memory turn.
+        """
+
         if self.memory is None:
             return
-        self.memory.add_user_message(user_content)
-        if tool_result is not None:
-            self.memory.add_tool_message(json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str))
-        self.memory.add_assistant_message(assistant_content)
+        if not original_message.strip():
+            return
+        self.memory.add_user_message(original_message)
+        if assistant_content.strip():
+            self.memory.add_assistant_message(assistant_content)
 
     def _build_user_content(self, request: AgentRequest) -> str:
         if request.project_path:
