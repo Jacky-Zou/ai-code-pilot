@@ -28,6 +28,11 @@ class FakeProvider(BaseLLMProvider):
         self.calls.append(messages)
         return self.responses.pop(0)
 
+    def chat_with_tools(self, messages, tools, model=None):  # type: ignore[override]
+        # Force the executor to fall back to the text-protocol loop so existing
+        # tests that supply text responses continue to exercise that path.
+        raise NotImplementedError
+
 
 def test_executor_returns_final_answer_without_tool() -> None:
     provider = FakeProvider(['{"type":"final","answer":"done"}'])
@@ -196,24 +201,19 @@ def test_executor_reprompts_when_final_answer_only_contains_thinking(tmp_path: P
 
 def test_executor_replaces_protocol_leak_with_tool_result_summary(tmp_path: Path) -> None:
     (tmp_path / "agent.py").write_text("class AgentExecutor:\n    pass\n", encoding="utf-8")
+    leaked = '```json\n{"type":"read_file","arguments":{"file_path":"agent.py","max_bytes":50000}}\n```'
     provider = FakeProvider(
         [
             '{"type":"read_file","arguments":{"file_path":"agent.py"}}',
-            """```json
-{"type":"read_file","arguments":{"file_path":"agent.py","max_bytes":50000}}
-```""",
-            """```json
-{"type":"read_file","arguments":{"file_path":"agent.py","max_bytes":50000}}
-```""",
-            """```json
-{"type":"read_file","arguments":{"file_path":"agent.py","max_bytes":50000}}
-```""",
-            """```json
-{"type":"read_file","arguments":{"file_path":"agent.py","max_bytes":50000}}
-```""",
+            leaked,
+            leaked,
+            leaked,
+            leaked,
+            # _request_final_summary consumes one more chat call after budget is exhausted.
+            '{"type":"final","answer":"Read `agent.py`."}',
         ]
     )
-    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(AGENT_MAX_STEPS=5, _env_file=None))
 
     response = executor.run(AgentRequest(message="where is the agent flow", project_path=str(tmp_path)))
 
@@ -236,11 +236,14 @@ def test_executor_uses_chinese_fallback_for_chinese_requests(tmp_path: Path) -> 
             '{"type":"read_file","arguments":{"file_path":"backend/app/agent/agent.py"}}',
         ]
     )
-    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(AGENT_MAX_STEPS=5, _env_file=None))
 
     response = executor.run(AgentRequest(message="请分析 Agent 主流程在哪里", project_path=str(tmp_path)))
 
-    assert "Agent 门面入口" in response.answer
+    # After T-8 refactor, fallback uses generic "已读取 `path`" instead of
+    # project-specific hardcoded descriptions. Verify no protocol leaks and
+    # that the response is in Chinese (contains the read path reference).
+    assert "已读取" in response.answer
     assert "```json" not in response.answer
     assert '"type"' not in response.answer
 
@@ -261,7 +264,9 @@ def test_executor_replaces_english_answer_for_chinese_request(tmp_path: Path) ->
 
     response = executor.run(AgentRequest(message="请分析 Agent 主流程在哪里", project_path=str(tmp_path)))
 
-    assert "核心执行闭环" in response.answer
+    # The English answer fails the CJK language check, so the fallback fires
+    # and returns the generic "已读取 `path`" description instead.
+    assert "已读取" in response.answer
     assert "The agent flow" not in response.answer
 
 
@@ -273,7 +278,7 @@ def test_executor_requests_final_summary_after_tool_budget(tmp_path: Path) -> No
         [f'{{"type":"read_file","arguments":{{"file_path":"file_{index}.py"}}}}' for index in range(1, 6)]
         + ['{"type":"final","answer":"Agent flow summary after collecting enough context."}']
     )
-    executor = AgentExecutor(llm_provider=provider, settings=Settings(_env_file=None))
+    executor = AgentExecutor(llm_provider=provider, settings=Settings(AGENT_MAX_STEPS=5, _env_file=None))
 
     response = executor.run(AgentRequest(message="summarize agent flow", project_path=str(tmp_path)))
 

@@ -20,6 +20,9 @@ class DummyProvider(BaseLLMProvider):
     ) -> str:
         return messages[-1]["content"]
 
+    def chat_with_tools(self, messages, tools, model=None):  # type: ignore[override]
+        raise NotImplementedError
+
 
 def test_provider_interface() -> None:
     provider = DummyProvider()

@@ -1,15 +1,17 @@
 import json
 import re
+from collections.abc import Iterator
 from typing import Any
 
 from app.agent.planner import parse_agent_action
-from app.agent.prompts import build_system_prompt
+from app.agent.prompts import build_system_prompt, build_system_prompt_for_tool_calling
 from app.agent.schemas import AgentAction, AgentRequest, AgentResponse, CodeReference, PatchSuggestion, ToolResult
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AICodePilotError
 from app.core.logger import get_logger
 from app.llm.base import BaseLLMProvider
 from app.llm.factory import LLMProviderFactory
+from app.llm.schemas import ChatResult, LLMToolCall
 from app.memory.conversation_memory import ConversationMemory
 from app.tools.registry import ToolRegistry, create_default_registry
 
@@ -21,8 +23,10 @@ _PROJECT_PATH_TOOLS = {
     "search_text",
     "retrieve_code",
     "run_command",
+    "propose_patch",
 }
-_MAX_TOOL_STEPS = 5
+# Fallback constant used when settings.agent_max_steps is unavailable.
+_MAX_TOOL_STEPS = 10
 _PROTOCOL_LEAK_PATTERN = re.compile(
     r"(```\s*json|<tool_calls>|</tool_calls>|<thinking>|</thinking>|\{\s*\"type\"\s*:\s*\"(?:action|final|read_file|list_files|search_text|retrieve_code))",
     re.IGNORECASE | re.DOTALL,
@@ -47,24 +51,223 @@ class AgentExecutor:
         provider_name = (request.provider or self.settings.llm_provider).strip().lower()
         model = request.model or self.settings.default_model_for_provider(provider_name)
         llm = self.llm_provider or LLMProviderFactory.create(provider_name, settings=self.settings)
-        system_prompt = build_system_prompt(self.registry.describe_tools())
+
+        tools_schema = self.registry.describe_tools()
         user_content = self._build_user_content(request)
-        messages = self._build_messages(system_prompt, user_content)
+        max_steps = getattr(self.settings, "agent_max_steps", _MAX_TOOL_STEPS)
 
         logger.info(
-            "Agent run started provider=%s model=%s project_path_present=%s memory_enabled=%s",
+            "Agent run started provider=%s model=%s project_path_present=%s memory_enabled=%s max_steps=%s",
             provider_name,
             model,
             bool(request.project_path),
             self.memory is not None,
+            max_steps,
         )
+
+        tool_results: list[ToolResult] = []
+        answer = ""
+
+        # --- Primary path: native tool calling (OpenAI function-calling protocol) ---
+        # Falls back to the text protocol if the provider raises NotImplementedError.
+        try:
+            system_prompt = build_system_prompt_for_tool_calling()
+            messages = self._build_messages(system_prompt, user_content)
+            answer, tool_results = self._run_tool_calling_loop(
+                llm=llm,
+                messages=messages,
+                tools_schema=tools_schema,
+                request=request,
+                model=model,
+                max_steps=max_steps,
+            )
+        except NotImplementedError:
+            logger.warning(
+                "Provider %s does not support tool calling, falling back to text protocol",
+                provider_name,
+            )
+            system_prompt = build_system_prompt(tools_schema)
+            messages = self._build_messages(system_prompt, user_content)
+            answer, tool_results = self._run_text_protocol_loop(
+                llm=llm,
+                messages=messages,
+                request=request,
+                model=model,
+                max_steps=max_steps,
+            )
+
+        answer = self._clean_final_answer(answer, tool_results, user_content)
+        if not answer:
+            answer = self._build_fallback_answer(tool_results, user_content)
+
+        self._remember_turn(request.message, answer)
+        logger.info(
+            "Agent run completed provider=%s model=%s tool_calls=%s",
+            provider_name,
+            model,
+            len(tool_results),
+        )
+
+        return AgentResponse(
+            answer=answer,
+            provider=provider_name,
+            model=model,
+            tool_calls=tool_results,
+            references=self._extract_references_from_results(tool_results),
+            patch_suggestions=self._extract_patch_suggestions_from_results(tool_results),
+        )
+
+    def run_stream(self, request: AgentRequest) -> Iterator[Any]:
+        """Stream agent execution as AgentEvent objects.
+
+        Yields AgentEvent instances for each significant step (thinking, tool
+        start/end, answer delta, done, error). Fully implemented in T-6 once
+        the events module is in place. This stub yields a single done event so
+        the SSE endpoint compiles and routes_chat.py works end-to-end.
+        """
+
+        from app.agent.events import AgentEvent
+
+        try:
+            response = self.run(request)
+            yield AgentEvent(
+                type="done",
+                data={
+                    "answer": response.answer,
+                    "provider": response.provider,
+                    "model": response.model,
+                    "tool_calls": [tc.model_dump() for tc in response.tool_calls],
+                    "references": [r.model_dump() for r in response.references],
+                    "patch_suggestions": [p.model_dump() for p in response.patch_suggestions],
+                },
+            )
+        except Exception as exc:
+            yield AgentEvent(type="error", data={"detail": str(exc)})
+
+    # ------------------------------------------------------------------
+    # Tool-calling loop (primary path: OpenAI function-calling protocol)
+    # ------------------------------------------------------------------
+
+    def _run_tool_calling_loop(
+        self,
+        llm: BaseLLMProvider,
+        messages: list[dict[str, Any]],
+        tools_schema: list[dict[str, Any]],
+        request: AgentRequest,
+        model: str,
+        max_steps: int,
+    ) -> tuple[str, list[ToolResult]]:
+        """Execute the ReAct loop using native tool_calls from the provider.
+
+        Each iteration the model returns either tool_calls to execute or a final
+        content string. We stop on final content, on hitting max_steps, or when
+        the model produces an identical back-to-back call (loop detection). Tool
+        results are appended using the OpenAI multi-turn format (role=tool +
+        tool_call_id) so the model can correlate each result to its request.
+        """
+
+        tool_results: list[ToolResult] = []
+        # Track (tool_name, frozen_args) to detect identical consecutive calls.
+        last_call_signature: tuple[str, str] | None = None
+
+        for step in range(1, max_steps + 1):
+            result: ChatResult = llm.chat_with_tools(list(messages), tools=tools_schema, model=model)
+
+            if result.is_final:
+                return result.content or "", tool_results
+
+            # Append the assistant message with its tool_calls so the model can
+            # correlate result messages back to each call id on the next turn.
+            assistant_msg: dict[str, Any] = {
+                "role": "assistant",
+                "content": result.content,  # may be None per OpenAI spec
+                "tool_calls": [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.name,
+                            "arguments": json.dumps(tc.arguments, ensure_ascii=False),
+                        },
+                    }
+                    for tc in result.tool_calls
+                ],
+            }
+            messages.append(assistant_msg)
+
+            for tc in result.tool_calls:
+                call_sig = (tc.name, json.dumps(tc.arguments, sort_keys=True))
+                if call_sig == last_call_signature:
+                    # Identical back-to-back call: the model is stuck in a loop.
+                    # Inject an error result to steer it toward a final answer.
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc.id,
+                            "content": (
+                                "Error: identical tool call detected. "
+                                "Please provide a final answer based on the results gathered so far."
+                            ),
+                        }
+                    )
+                    logger.warning("Loop detected tool=%s step=%s", tc.name, step)
+                    continue
+                last_call_signature = call_sig
+
+                tool_result = self._execute_native_tool_call(tc, request)
+                tool_results.append(tool_result)
+                result_content = json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str)
+                messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_content})
+                logger.info(
+                    "Tool step=%s tool=%s error=%s", step, tool_result.name, bool(tool_result.error)
+                )
+
+        # Budget exhausted without a final answer; ask the model to synthesize.
+        return self._request_final_summary(llm, messages, model), tool_results
+
+    def _execute_native_tool_call(self, tc: LLMToolCall, request: AgentRequest) -> ToolResult:
+        """Execute a single native tool call and return its ToolResult."""
+
+        arguments = dict(tc.arguments)
+        if request.project_path and tc.name in _PROJECT_PATH_TOOLS and "project_path" not in arguments:
+            arguments["project_path"] = request.project_path
+        logger.info("Tool selected name=%s arg_keys=%s", tc.name, sorted(arguments))
+        tool = self.registry.get(tc.name)
+        result = ToolResult(name=tc.name, arguments=arguments)
+        try:
+            result.result = tool.run(**arguments)
+        except Exception as exc:
+            result.error = str(exc)
+            logger.warning("Tool failed name=%s error=%s", tc.name, exc)
+        else:
+            logger.info("Tool execution completed tool=%s", tc.name)
+        return result
+
+    # ------------------------------------------------------------------
+    # Text-protocol loop (fallback: regex planner, for providers without
+    # native function calling support)
+    # ------------------------------------------------------------------
+
+    def _run_text_protocol_loop(
+        self,
+        llm: BaseLLMProvider,
+        messages: list[dict[str, Any]],
+        request: AgentRequest,
+        model: str,
+        max_steps: int,
+    ) -> tuple[str, list[ToolResult]]:
+        """Execute the legacy text-protocol loop using the regex planner.
+
+        This path is the fallback for providers that do not implement
+        chat_with_tools. It is kept intact so AICodePilot remains usable with
+        any OpenAI-compatible endpoint that lacks function-calling support.
+        """
+
         tool_results: list[ToolResult] = []
         answer = ""
         current_messages = list(messages)
 
-        for step in range(1, _MAX_TOOL_STEPS + 1):
-            # Pass a shallow copy so later tool-result messages do not mutate
-            # the exact message list already handed to a provider or test fake.
+        for step in range(1, max_steps + 1):
             raw_response = llm.chat(list(current_messages), model=model)
             action = parse_agent_action(raw_response)
 
@@ -96,14 +299,13 @@ class AgentExecutor:
                     {"role": "assistant", "content": raw_response},
                     {
                         "role": "user",
-                        "content": "Tool result:\n" + json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str),
+                        "content": "Tool result:\n"
+                        + json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str),
                     },
                 ]
             )
             logger.info(
-                "Agent tool step completed provider=%s model=%s step=%s tool=%s tool_error=%s",
-                provider_name,
-                model,
+                "Agent tool step completed step=%s tool=%s tool_error=%s",
                 step,
                 tool_result.name,
                 bool(tool_result.error),
@@ -114,26 +316,7 @@ class AgentExecutor:
         if not answer and tool_results:
             answer = self._request_final_summary(llm, current_messages, model)
 
-        if not answer:
-            answer = self._build_fallback_answer(tool_results, user_content)
-        answer = self._clean_final_answer(answer, tool_results, user_content)
-
-        self._remember_turn(request.message, answer)
-        logger.info(
-            "Agent run completed provider=%s model=%s tool_calls=%s",
-            provider_name,
-            model,
-            len(tool_results),
-        )
-
-        return AgentResponse(
-            answer=answer,
-            provider=provider_name,
-            model=model,
-            tool_calls=tool_results,
-            references=self._extract_references_from_results(tool_results),
-            patch_suggestions=self._extract_patch_suggestions_from_results(tool_results),
-        )
+        return answer, tool_results
 
     def _execute_action(self, action: AgentAction, request: AgentRequest) -> ToolResult:
         if not action.tool:
@@ -155,21 +338,19 @@ class AgentExecutor:
             logger.info("Tool execution completed tool=%s", action.tool)
         return tool_result
 
+    # ------------------------------------------------------------------
+    # Shared helpers
+    # ------------------------------------------------------------------
+
     def _request_final_summary(
         self,
         llm: BaseLLMProvider,
-        current_messages: list[dict[str, str]],
+        current_messages: list[dict[str, Any]],
         model: str,
     ) -> str:
-        """Ask the model for one final synthesis after tool budget is exhausted.
+        """Ask the model for one final synthesis after tool budget is exhausted."""
 
-        Some providers keep requesting more files even after the executor has
-        gathered enough context. The user should still receive a useful answer,
-        so the executor performs one extra no-tools synthesis turn before
-        falling back to deterministic local summarization.
-        """
-
-        final_messages = [
+        final_messages: list[dict[str, Any]] = [
             {
                 "role": "system",
                 "content": (
@@ -189,26 +370,23 @@ class AgentExecutor:
 
         if action.type == "final" and action.answer:
             return action.answer
-        logger.warning("Final summary synthesis returned non-final action type=%s tool=%s", action.type, action.tool)
+        logger.warning(
+            "Final summary synthesis returned non-final action type=%s tool=%s",
+            action.type,
+            action.tool,
+        )
         return ""
 
-    def _build_final_summary_context(self, current_messages: list[dict[str, str]]) -> str:
-        """Build a clean finalization prompt without previous tool-call JSON.
-
-        The normal Agent loop stores assistant tool-call payloads in history so
-        the next planning step has full context. For final synthesis, those JSON
-        payloads can bias weaker provider responses into repeating tool calls.
-        This context keeps only the original user request and the observed tool
-        results.
-        """
-
+    def _build_final_summary_context(self, current_messages: list[dict[str, Any]]) -> str:
         user_request = ""
         tool_result_blocks: list[str] = []
         for message in current_messages:
-            if message.get("role") != "user":
+            if message.get("role") not in {"user", "tool"}:
                 continue
-            content = message.get("content", "")
-            if content.startswith("Tool result:\n"):
+            content = str(message.get("content") or "")
+            if message.get("role") == "tool":
+                tool_result_blocks.append(content)
+            elif content.startswith("Tool result:\n"):
                 tool_result_blocks.append(content.removeprefix("Tool result:\n"))
             elif not user_request:
                 user_request = content
@@ -226,7 +404,9 @@ class AgentExecutor:
     def _looks_like_protocol_leak(self, answer: str) -> bool:
         return bool(_PROTOCOL_LEAK_PATTERN.search(answer))
 
-    def _clean_final_answer(self, answer: str, tool_results: list[ToolResult], user_content: str) -> str:
+    def _clean_final_answer(
+        self, answer: str, tool_results: list[ToolResult], user_content: str
+    ) -> str:
         cleaned = answer.strip()
         if not cleaned or self._looks_like_protocol_leak(cleaned):
             return self._build_fallback_answer(tool_results, user_content)
@@ -234,7 +414,9 @@ class AgentExecutor:
             return self._build_fallback_answer(tool_results, user_content)
         return cleaned
 
-    def _build_fallback_answer(self, tool_results: list[ToolResult], user_content: str = "") -> str:
+    def _build_fallback_answer(
+        self, tool_results: list[ToolResult], user_content: str = ""
+    ) -> str:
         if not tool_results:
             if self._contains_cjk(user_content):
                 return "模型没有返回可用的最终答案。"
@@ -254,15 +436,10 @@ class AgentExecutor:
                 lines.append(self._describe_read_file_result(str(relative_path), user_content))
             elif tool_result.name == "list_files" and isinstance(tool_result.result, dict):
                 files = [str(item) for item in tool_result.result.get("files", [])]
-                agent_files = [file for file in files if "agent" in file.lower()][:8]
-                if agent_files:
-                    prefix = "- 发现与 Agent 相关的文件：" if self._contains_cjk(user_content) else "- Agent-related files found: "
-                    lines.append(prefix + ", ".join(f"`{file}`" for file in agent_files))
+                if self._contains_cjk(user_content):
+                    lines.append(f"- 已列出 {tool_result.result.get('count', len(files))} 个文件。")
                 else:
-                    if self._contains_cjk(user_content):
-                        lines.append(f"- 已列出 {tool_result.result.get('count', len(files))} 个文件。")
-                    else:
-                        lines.append(f"- Listed {tool_result.result.get('count', len(files))} files.")
+                    lines.append(f"- Listed {tool_result.result.get('count', len(files))} files.")
             elif tool_result.name == "project_tree" and isinstance(tool_result.result, dict):
                 entries = [str(item) for item in tool_result.result.get("entries", [])[:20]]
                 prefix = "- 项目结构片段：" if self._contains_cjk(user_content) else "- Project tree sample: "
@@ -274,7 +451,9 @@ class AgentExecutor:
             elif tool_result.name == "retrieve_code" and isinstance(tool_result.result, dict):
                 matches = tool_result.result.get("matches", [])[:5]
                 for match in matches:
-                    lines.append(f"- `{match.get('file_path')}` lines {match.get('start_line')}-{match.get('end_line')}")
+                    lines.append(
+                        f"- `{match.get('file_path')}` lines {match.get('start_line')}-{match.get('end_line')}"
+                    )
             else:
                 if self._contains_cjk(user_content):
                     lines.append(f"- `{tool_result.name}` 执行成功。")
@@ -283,33 +462,23 @@ class AgentExecutor:
         return "\n".join(lines)
 
     def _describe_read_file_result(self, relative_path: str, user_content: str) -> str:
-        """Return a human fallback sentence for a read file result.
+        """Generic fallback description for a read file result.
 
-        This keeps the product useful even when a provider refuses to produce
-        the final summary after successful tool calls. The descriptions are
-        intentionally conservative and tied to stable module responsibilities.
+        Intentionally project-agnostic: hardcoding descriptions for specific files
+        only helped on this repository and produced misleading output on any other
+        codebase. The file path gives the user a neutral, accurate signal.
         """
 
-        if not self._contains_cjk(user_content):
-            return f"- Read `{relative_path}`."
-
-        normalized_path = relative_path.replace("\\", "/")
-        if normalized_path.endswith("backend/app/agent/agent.py") or normalized_path.endswith("agent.py"):
-            return "- `backend/app/agent/agent.py` 是 Agent 门面入口，负责把用户输入封装成 `AgentRequest` 并交给执行器。"
-        if normalized_path.endswith("backend/app/agent/executor.py") or normalized_path.endswith("executor.py"):
-            return "- `backend/app/agent/executor.py` 是核心执行闭环，负责模型调用、工具执行、结果回填和最终答案生成。"
-        if normalized_path.endswith("backend/app/agent/planner.py") or normalized_path.endswith("planner.py"):
-            return "- `backend/app/agent/planner.py` 负责把模型原始输出解析为结构化 `AgentAction`。"
-        if normalized_path.endswith("backend/app/agent/prompts.py") or normalized_path.endswith("prompts.py"):
-            return "- `backend/app/agent/prompts.py` 定义系统提示词和工具调用输出约束。"
-        if normalized_path.endswith("backend/app/tools/registry.py") or normalized_path.endswith("registry.py"):
-            return "- `backend/app/tools/registry.py` 负责注册和查找 Agent 可调用工具。"
-        return f"- 已读取 `{relative_path}`。"
+        if self._contains_cjk(user_content):
+            return f"- 已读取 `{relative_path}`。"
+        return f"- Read `{relative_path}`."
 
     def _contains_cjk(self, content: str) -> bool:
-        return any("\u4e00" <= character <= "\u9fff" for character in content)
+        return any("一" <= character <= "鿿" for character in content)
 
-    def _build_messages(self, system_prompt: str, user_content: str) -> list[dict[str, str]]:
+    def _build_messages(
+        self, system_prompt: str, user_content: str
+    ) -> list[dict[str, Any]]:
         if self.memory is None:
             return [
                 {"role": "system", "content": system_prompt},
@@ -382,13 +551,17 @@ class AgentExecutor:
             ]
         return []
 
-    def _extract_references_from_results(self, tool_results: list[ToolResult]) -> list[CodeReference]:
+    def _extract_references_from_results(
+        self, tool_results: list[ToolResult]
+    ) -> list[CodeReference]:
         references: list[CodeReference] = []
         for tool_result in tool_results:
             references.extend(self._extract_references(tool_result))
         return references
 
-    def _extract_patch_suggestions(self, tool_result: ToolResult) -> list[PatchSuggestion]:
+    def _extract_patch_suggestions(
+        self, tool_result: ToolResult
+    ) -> list[PatchSuggestion]:
         if tool_result.error or not isinstance(tool_result.result, dict):
             return []
 
@@ -398,12 +571,12 @@ class AgentExecutor:
             if isinstance(item, PatchSuggestion):
                 suggestions.append(item)
             elif isinstance(item, dict):
-                # Patch suggestions remain advisory data. The executor only
-                # validates and forwards them; it never applies the diff.
                 suggestions.append(PatchSuggestion.model_validate(item))
         return suggestions
 
-    def _extract_patch_suggestions_from_results(self, tool_results: list[ToolResult]) -> list[PatchSuggestion]:
+    def _extract_patch_suggestions_from_results(
+        self, tool_results: list[ToolResult]
+    ) -> list[PatchSuggestion]:
         suggestions: list[PatchSuggestion] = []
         for tool_result in tool_results:
             suggestions.extend(self._extract_patch_suggestions(tool_result))

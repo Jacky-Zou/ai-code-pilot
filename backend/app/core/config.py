@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     deepseek_base_url: str = Field(default="https://api.deepseek.com", alias="DEEPSEEK_BASE_URL")
     deepseek_model: str = Field(default="deepseek-v4-pro", alias="DEEPSEEK_MODEL")
 
-    embedding_provider: str = Field(default="openai", alias="EMBEDDING_PROVIDER")
+    embedding_provider: str = Field(default="local", alias="EMBEDDING_PROVIDER")
     embedding_model: str = Field(default="text-embedding-3-small", alias="EMBEDDING_MODEL")
 
     vector_store_path: Path = Field(default=Path("./data/vector_store"), alias="VECTOR_STORE_PATH")
@@ -41,6 +41,17 @@ class Settings(BaseSettings):
         default="http://localhost:3000,http://127.0.0.1:3000",
         alias="CORS_ALLOWED_ORIGINS",
     )
+
+    # Agent execution controls
+    # Maximum tool-call steps per agent run. Higher values allow complex
+    # multi-file tasks to complete without hitting the budget, but also increase
+    # the blast radius of a misbehaving model. Configurable via AGENT_MAX_STEPS.
+    agent_max_steps: int = Field(default=10, ge=3, le=30, alias="AGENT_MAX_STEPS")
+
+    # Shell tool gate. Disabled by default to reduce the attack surface: an
+    # LLM-controlled shell command is a significant security risk. Set
+    # ENABLE_SHELL_TOOL=true only in trusted local environments.
+    enable_shell_tool: bool = Field(default=False, alias="ENABLE_SHELL_TOOL")
 
     model_config = SettingsConfigDict(
         env_file=(ROOT_ENV_FILE, ".env"),
