@@ -5,8 +5,12 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.core.exceptions import ToolError
-from app.core.project_paths import normalize_project_path
+from app.core.fs_safety import resolve_existing_dir, resolve_file
 from app.tools.base import BaseTool
+
+# Public aliases kept for backward compatibility within this package.
+_resolve_existing_dir = resolve_existing_dir
+_resolve_file = resolve_file
 
 DEFAULT_MAX_FILE_BYTES = 512_000
 IGNORED_DIRS = {
@@ -49,41 +53,6 @@ class FindFilesArgs(BaseModel):
     project_path: str
     pattern: str = Field(min_length=1)
     max_results: int = Field(default=100, ge=1, le=1000)
-
-
-def _resolve_existing_dir(path: str) -> Path:
-    root = Path(normalize_project_path(path)).expanduser().resolve()
-    if not root.exists():
-        raise ToolError(f"Project path does not exist: {path}")
-    if not root.is_dir():
-        raise ToolError(f"Project path is not a directory: {path}")
-    return root
-
-
-def _is_relative_to(path: Path, root: Path) -> bool:
-    try:
-        path.relative_to(root)
-        return True
-    except ValueError:
-        return False
-
-
-def _resolve_file(file_path: str, project_path: str | None) -> tuple[Path, Path]:
-    if project_path:
-        root = _resolve_existing_dir(project_path)
-        candidate = Path(file_path).expanduser()
-        resolved = (root / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
-    else:
-        resolved = Path(file_path).expanduser().resolve()
-        root = resolved.parent
-
-    if not resolved.exists():
-        raise ToolError(f"File does not exist: {file_path}")
-    if not resolved.is_file():
-        raise ToolError(f"Path is not a file: {file_path}")
-    if not _is_relative_to(resolved, root):
-        raise ToolError("File path is outside the allowed project root")
-    return root, resolved
 
 
 def _looks_binary(path: Path) -> bool:

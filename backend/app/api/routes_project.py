@@ -10,9 +10,10 @@ from app.api.schemas import (
     ProjectSearchResponse,
     ProjectSearchResult,
 )
+from app.core.config import get_settings
 from app.core.logger import get_logger
 from app.core.project_paths import normalize_project_path
-from app.rag.embeddings import LocalHashEmbeddingClient
+from app.rag.embeddings import create_embedding_client
 from app.rag.indexer import ProjectFile, ProjectIndexer
 from app.rag.retriever import CodeRetriever
 
@@ -46,9 +47,9 @@ LANGUAGE_BY_EXTENSION = {
 
 
 def get_retriever() -> CodeRetriever:
-    """Provide the project retriever used by indexing and search endpoints."""
+    """Provide the project retriever, using the embedding provider from settings."""
 
-    return CodeRetriever(embedding_client=LocalHashEmbeddingClient())
+    return CodeRetriever(embedding_client=create_embedding_client(get_settings().embedding_provider))
 
 
 def _language_for_file(relative_path: str) -> str:

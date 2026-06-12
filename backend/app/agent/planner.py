@@ -1,3 +1,12 @@
+"""Text-protocol parser — fallback path only.
+
+This module is used exclusively when a provider does not implement
+chat_with_tools(). The primary Agent path (T-3) uses native tool_calls
+and never touches this parser. If you are debugging unexpected tool-call
+behavior, check executor._run_tool_calling_loop first; only arrive here
+if the provider raised NotImplementedError on chat_with_tools.
+"""
+
 import json
 import re
 from typing import Any
