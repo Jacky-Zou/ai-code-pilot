@@ -12,33 +12,27 @@ from app.tools.base import BaseTool
 
 _DEFAULT_TIMEOUT_SECONDS = 10
 _MAX_OUTPUT_CHARS = 12000
-_DANGEROUS_EXECUTABLES = {
-    "rm",
-    "rmdir",
-    "del",
-    "erase",
-    "format",
-    "shutdown",
-    "reboot",
-    "mkfs",
-    "diskpart",
-    "reg",
-    "takeown",
-    "icacls",
-}
-_DANGEROUS_TOKENS = {
-    "rm",
-    "rm.exe",
-    "rmdir",
-    "del",
-    "erase",
-    "format",
-    "shutdown",
-    "reboot",
-    "mkfs",
-    "diskpart",
-}
 _SHELL_CONTROL_TOKENS = {"|", "||", "&", "&&", ";", "<", ">", ">>", "2>", "`"}
+
+# Explicit allowlist of safe, read-only/build/test commands.
+# Keys are executable basenames; values are the set of allowed first arguments
+# (None means any first argument is permitted for that executable).
+# A blacklist approach has unbounded leakage (e.g. git push, python -c, pip install);
+# this allowlist is the minimal safe surface for a local developer assistant.
+_ALLOWED_COMMANDS: dict[str, set[str] | None] = {
+    "git": {"status", "log", "diff", "show", "branch", "remote", "ls-files"},
+    "ls": None,
+    "cat": None,
+    "pwd": None,
+    "python": {"-m", "--version", "-V"},
+    "python3": {"-m", "--version", "-V"},
+    "pytest": None,
+    "node": {"--version"},
+    "npm": {"run", "test", "ci", "list"},
+    "ruff": None,
+    "mypy": None,
+    "black": None,
+}
 
 
 class RunCommandArgs(BaseModel):
@@ -178,15 +172,16 @@ class RunCommandTool(BaseTool):
             raise ToolError("Shell control operators, pipes, redirects, and command substitution are not allowed")
 
         executable = Path(tokens[0]).name.lower()
-        normalized_tokens = {Path(token).name.lower() for token in tokens}
-        if executable in _DANGEROUS_EXECUTABLES or normalized_tokens & _DANGEROUS_TOKENS:
-            raise ToolError(f"Dangerous command is not allowed: {tokens[0]}")
+        # Strip .exe suffix on Windows so "git.exe" matches "git" in the allowlist.
+        executable_key = executable.removesuffix(".exe")
+        if executable_key not in _ALLOWED_COMMANDS:
+            raise ToolError(f"Command not in allowlist: {tokens[0]}")
 
-        lowered = raw_command.lower()
-        if "curl" in lowered and "| sh" in lowered:
-            raise ToolError("Piping curl output to a shell is not allowed")
-        if "invoke-webrequest" in lowered and ("iex" in lowered or "invoke-expression" in lowered):
-            raise ToolError("Downloading and executing scripts is not allowed")
+        allowed_first_args = _ALLOWED_COMMANDS[executable_key]
+        if allowed_first_args is not None and len(tokens) > 1:
+            first_arg = tokens[1]
+            if first_arg not in allowed_first_args:
+                raise ToolError(f"First argument '{first_arg}' not allowed for {executable_key}. " f"Allowed: {sorted(allowed_first_args)}")
 
     def _truncate(self, value: str | bytes | None) -> str:
         if value is None:

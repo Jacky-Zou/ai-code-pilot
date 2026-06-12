@@ -8,7 +8,7 @@ from app.core.exceptions import ToolError
 from app.core.project_paths import normalize_project_path
 from app.tools.base import BaseTool
 
-DEFAULT_MAX_FILE_BYTES = 1_000_000
+DEFAULT_MAX_FILE_BYTES = 512_000
 IGNORED_DIRS = {
     ".git",
     ".hg",
