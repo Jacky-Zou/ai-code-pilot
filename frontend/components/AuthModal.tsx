@@ -26,42 +26,113 @@ export function AuthModal({
   userName, onClose, onSubmit, onAvatarUpload,
 }: Props) {
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <button aria-label="Close" className="modal-close" onClick={onClose} type="button">✕</button>
-        <h2>{TITLES[authMode]}</h2>
-        <p className="demo-notice">⚠ Demo mode — authentication is browser-only and not secure.</p>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const fd = new FormData(e.currentTarget);
-          onSubmit({ name: (fd.get("name") as string) || undefined, captchaInput });
-        }}>
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label={TITLES[authMode]}>
+      <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="modal-header">
+          <div>
+            <h2>{TITLES[authMode]}</h2>
+            <p>⚠ Demo mode — browser-only, not secure.</p>
+          </div>
+          <button
+            aria-label="Close"
+            className="icon-button compact"
+            onClick={onClose}
+            type="button"
+            style={{ flexShrink: 0 }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            onSubmit({ name: (fd.get("name") as string) || undefined, captchaInput });
+          }}
+        >
+          {/* Display name (register + profile) */}
           {(authMode === "register" || authMode === "profile") && (
-            <div className="field-group">
-              <label htmlFor="auth-name">Display name</label>
-              <input defaultValue={userName} id="auth-name" name="name" required type="text" />
+            <div style={{ marginBottom: "12px" }}>
+              <label className="field-label" htmlFor="auth-name">Display name</label>
+              <input
+                className="field-input"
+                defaultValue={userName}
+                id="auth-name"
+                name="name"
+                required
+                type="text"
+              />
             </div>
           )}
-          {authMode !== "profile" && (
-            <>
-              <div className="captcha-row">
-                <span className="captcha-display">{captchaCode}</span>
-                <input onChange={(e) => setCaptchaInput(e.target.value)}
-                  placeholder="Enter code" required type="text" value={captchaInput} />
-              </div>
-              {authError && <p className="field-error">{authError}</p>}
-            </>
-          )}
+
+          {/* Avatar upload (profile only) */}
           {authMode === "profile" && (
-            <div className="field-group">
-              <label>Avatar</label>
-              <input accept="image/*" onChange={onAvatarUpload} type="file" />
+            <div style={{ marginBottom: "12px" }}>
+              <label className="field-label">Avatar</label>
+              <input accept="image/*" className="field-input" onChange={onAvatarUpload} type="file" />
             </div>
           )}
-          <button className="primary-button w-full mt-4" type="submit">
+
+          {/* Captcha (login / register / forgot) */}
+          {authMode !== "profile" && (
+            <div style={{ marginBottom: "12px" }}>
+              <label className="field-label">Verification code</label>
+              <div className="captcha-row">
+                <span className="captcha-code">{captchaCode}</span>
+                <input
+                  className="field-input"
+                  onChange={(e) => setCaptchaInput(e.target.value)}
+                  placeholder="Enter code above"
+                  required
+                  type="text"
+                  value={captchaInput}
+                />
+              </div>
+              {authError && (
+                <p style={{ margin: "6px 0 0", color: "var(--danger)", fontSize: "13px" }}>
+                  {authError}
+                </p>
+              )}
+            </div>
+          )}
+
+          <button className="primary-button" style={{ width: "100%", marginTop: "8px" }} type="submit">
             {authMode === "login" ? "Sign in" : authMode === "register" ? "Create account" : "Save"}
           </button>
         </form>
+
+        {/* Navigation links */}
+        {(authMode === "login" || authMode === "register") && (
+          <div className="auth-links">
+            {authMode === "login" ? (
+              <>
+                <span style={{ color: "var(--muted)", fontSize: "12px" }}>No account?</span>
+                <button
+                  type="button"
+                  className="auth-links button"
+                  style={{ border: 0, background: "transparent", color: "var(--primary)", fontSize: "12px", fontWeight: 800, cursor: "pointer" }}
+                  onClick={() => onSubmit({ captchaInput: "" })}
+                >
+                  Register
+                </button>
+              </>
+            ) : (
+              <>
+                <span style={{ color: "var(--muted)", fontSize: "12px" }}>Already have an account?</span>
+                <button
+                  type="button"
+                  style={{ border: 0, background: "transparent", color: "var(--primary)", fontSize: "12px", fontWeight: 800, cursor: "pointer" }}
+                  onClick={() => onSubmit({ captchaInput: "" })}
+                >
+                  Sign in
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

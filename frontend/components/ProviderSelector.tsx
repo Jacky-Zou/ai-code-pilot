@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { Boxes, Check, ChevronDown, Eye, EyeOff, Globe2, Landmark, Loader2, Lock, RefreshCw } from "lucide-react";
+import { Boxes, Check, ChevronDown, Globe2, Landmark, Loader2, Lock, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ProviderName } from "@/lib/api";
 import { useProviderConfig } from "@/hooks/useProviderConfig";
@@ -28,7 +28,7 @@ const PROVIDERS: ProviderOption[] = [
   { description: "Planned provider for review and architecture analysis.", label: "Anthropic Claude", logoSrc: "/provider-logos/overseas/claude_logo.jpg", logoText: "CL", provider: "claude", region: "global", status: "coming-soon" },
 ];
 
-// Fallback curated models shown before a key is entered / fetched.
+// Curated fallback models shown before key is entered / fetched.
 const FALLBACK_MODELS: Partial<Record<ProviderName, string[]>> = {
   deepseek: ["deepseek-chat", "deepseek-reasoner"],
   openai: ["gpt-4o", "gpt-4o-mini", "o3-mini"],
@@ -58,9 +58,9 @@ function ProviderLogo({ provider }: { provider: ProviderOption }) {
 export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
   const [region, setRegion] = useState<ProviderRegion>("domestic");
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
-  const [showKey, setShowKey] = useState(false);
   const [draftKey, setDraftKey] = useState("");
-  const [internalValue, setInternalValue] = useState<ProviderSelection>({ provider: "deepseek", model: "deepseek-chat" });
+  // Start with no selection — user picks provider + model explicitly
+  const [internalValue, setInternalValue] = useState<ProviderSelection>({ provider: "deepseek", model: "" });
   const modelMenuRef = useRef<HTMLDivElement | null>(null);
 
   const { getKey, setKey, models, isLoadingModels, modelsError, fetchModels } = useProviderConfig();
@@ -68,8 +68,6 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
   const selection = value ?? internalValue;
   const visibleProviders = PROVIDERS.filter((p) => p.region === region);
   const selectedProvider = PROVIDERS.find((p) => p.provider === selection.provider) ?? PROVIDERS[0];
-
-  // Dynamic models take precedence over the curated fallback.
   const providerModels = models[selection.provider] ?? FALLBACK_MODELS[selection.provider] ?? [];
   const savedKey = getKey(selection.provider);
 
@@ -81,7 +79,8 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
   function selectProvider(provider: ProviderOption) {
     if (provider.status !== "available") return;
     const saved = getKey(provider.provider);
-    const firstModel = (models[provider.provider] ?? FALLBACK_MODELS[provider.provider] ?? [])[0] ?? "";
+    const currentModels = models[provider.provider] ?? FALLBACK_MODELS[provider.provider] ?? [];
+    const firstModel = currentModels[0] ?? "";
     commit({ provider: provider.provider, model: firstModel, apiKey: saved || undefined });
     setIsModelMenuOpen(false);
     setDraftKey("");
@@ -129,9 +128,18 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
           const isSelected = selectedProvider.provider === provider.provider;
           const isDisabled = provider.status !== "available";
           return (
-            <button className={`provider-option ${isSelected ? "selected" : ""}`} disabled={isDisabled} key={provider.provider} onClick={() => selectProvider(provider)} type="button">
+            <button
+              className={`provider-option ${isSelected ? "selected" : ""}`}
+              disabled={isDisabled}
+              key={provider.provider}
+              onClick={() => selectProvider(provider)}
+              type="button"
+            >
               <ProviderLogo provider={provider} />
-              <span><strong>{provider.label}</strong><small>{provider.description}</small></span>
+              <span>
+                <strong>{provider.label}</strong>
+                <small>{provider.description}</small>
+              </span>
               {isSelected && <Check className="h-3.5 w-3.5 text-primary" aria-hidden="true" />}
               {isDisabled && <Lock className="h-3.5 w-3.5 text-muted" aria-hidden="true" />}
             </button>
@@ -139,35 +147,39 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
         })}
       </div>
 
-      {/* API Key input */}
+      {/* API Key — single row: input + Save button */}
       <label className="field-label" htmlFor="provider-api-key">API Key</label>
-      <div className="api-key-row">
-        <div className="api-key-input-wrap">
-          <input
-            className="field-input api-key-input"
-            id="provider-api-key"
-            onChange={(e) => setDraftKey(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSaveKey(); }}
-            placeholder={savedKey ? "Key saved — enter new to replace" : `${selectedProvider.label} API key…`}
-            type={showKey ? "text" : "password"}
-            value={draftKey}
-          />
-          <button aria-label={showKey ? "Hide key" : "Show key"} className="icon-button key-toggle" onClick={() => setShowKey((v) => !v)} type="button">
-            {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-        <button className="secondary-button" disabled={!draftKey.trim()} onClick={handleSaveKey} type="button">
+      <div style={{ display: "flex", gap: "8px", marginBottom: "4px" }}>
+        <input
+          className="field-input"
+          id="provider-api-key"
+          onChange={(e) => setDraftKey(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleSaveKey(); }}
+          placeholder={savedKey ? "Key saved — enter new to replace" : `${selectedProvider.label} API key…`}
+          style={{ flex: 1 }}
+          type="password"
+          value={draftKey}
+        />
+        <button
+          className="secondary-button"
+          disabled={!draftKey.trim()}
+          onClick={handleSaveKey}
+          style={{ flexShrink: 0 }}
+          type="button"
+        >
           Save
         </button>
       </div>
-      {savedKey && <p className="workspace-hint">✓ Key saved for {selectedProvider.label}</p>}
+      {savedKey && <p className="workspace-hint" style={{ marginBottom: "8px" }}>✓ Key saved for {selectedProvider.label}</p>}
 
-      {/* Model select */}
-      <div className="model-select-header">
-        <label className="field-label" id="model-select-label">Current Model</label>
+      {/* Model select — label + reload button in one flex row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+        <label className="field-label" id="model-select-label" style={{ margin: 0 }}>
+          Current Model
+        </label>
         <button
           aria-label="Reload models from provider"
-          className="icon-button app-tooltip"
+          className="icon-button compact app-tooltip"
           data-tooltip={savedKey ? "Load models for this key" : "Save a key first"}
           disabled={isLoadingModels || !savedKey}
           onClick={handleFetchModels}
@@ -176,13 +188,21 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
           {isLoadingModels ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
         </button>
       </div>
-      {modelsError && <p className="error-box mb-2 text-xs">{modelsError}</p>}
+      {modelsError && <p className="error-box" style={{ marginBottom: "8px", fontSize: "12px" }}>{modelsError}</p>}
+
       <div
         className="model-select"
         onBlur={(e) => { if (!modelMenuRef.current?.contains(e.relatedTarget as Node | null)) setIsModelMenuOpen(false); }}
         ref={modelMenuRef}
       >
-        <button aria-expanded={isModelMenuOpen} aria-haspopup="listbox" aria-labelledby="model-select-label" className="model-select-trigger" onClick={() => setIsModelMenuOpen((o) => !o)} type="button">
+        <button
+          aria-expanded={isModelMenuOpen}
+          aria-haspopup="listbox"
+          aria-labelledby="model-select-label"
+          className="model-select-trigger"
+          onClick={() => setIsModelMenuOpen((o) => !o)}
+          type="button"
+        >
           <span>{selection.model || "Select model"}</span>
           <ChevronDown className={`h-4 w-4 ${isModelMenuOpen ? "rotate-180" : ""}`} aria-hidden="true" />
         </button>
@@ -191,7 +211,14 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
             {providerModels.map((modelId) => {
               const isSelected = modelId === selection.model;
               return (
-                <button aria-selected={isSelected} className={`model-select-option ${isSelected ? "selected" : ""}`} key={modelId} onClick={() => { commit({ ...selection, model: modelId }); setIsModelMenuOpen(false); }} role="option" type="button">
+                <button
+                  aria-selected={isSelected}
+                  className={`model-select-option ${isSelected ? "selected" : ""}`}
+                  key={modelId}
+                  onClick={() => { commit({ ...selection, model: modelId }); setIsModelMenuOpen(false); }}
+                  role="option"
+                  type="button"
+                >
                   <span><strong>{modelId}</strong></span>
                   {isSelected && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                 </button>
@@ -201,7 +228,9 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
         )}
         {isModelMenuOpen && providerModels.length === 0 && (
           <div className="model-select-menu">
-            <p className="model-select-empty">{savedKey ? 'Click ↺ to load models' : 'Save an API key, then click ↺'}</p>
+            <p style={{ padding: "10px 12px", margin: 0, color: "var(--muted)", fontSize: "13px" }}>
+              {savedKey ? "Click ↺ above to load models" : "Save an API key, then click ↺"}
+            </p>
           </div>
         )}
       </div>

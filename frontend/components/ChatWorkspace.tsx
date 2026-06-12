@@ -40,7 +40,7 @@ const DEFAULT_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%232563eb'/%3E%3Ccircle cx='32' cy='24' r='11' fill='white' opacity='.95'/%3E%3Cpath d='M14 54c3.6-11 12.2-16 18-16s14.4 5 18 16' fill='white' opacity='.95'/%3E%3C/svg%3E";
 
 export function ChatWorkspace() {
-  const [selection, setSelection] = useState<ProviderSelection>({ provider: "openai", model: "" });
+  const [selection, setSelection] = useState<ProviderSelection>({ provider: "deepseek", model: "" });
   const [isLeftRailCollapsed, setIsLeftRailCollapsed] = useState(false);
   const [projectPath, setProjectPath] = useState(DEFAULT_PROJECT_PATH);
   const [message, setMessage] = useState("");
@@ -252,7 +252,7 @@ export function ChatWorkspace() {
                 {message.length} / 32000
               </span>
               <button aria-label="Send message" className="send-button" disabled={isSending} type="submit">
-                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" /> Send</>}
               </button>
             </div>
           </form>
