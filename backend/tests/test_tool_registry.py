@@ -89,8 +89,8 @@ def test_shell_tool_registered_when_enabled(monkeypatch) -> None:
 
     monkeypatch.setenv("ENABLE_SHELL_TOOL", "true")
     # Force settings to reload with new env
-    import importlib
     import app.core.config as cfg_module
+
     cfg_module.get_settings.cache_clear()
 
     registry = create_default_registry()

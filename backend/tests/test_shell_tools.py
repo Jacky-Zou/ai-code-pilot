@@ -18,7 +18,6 @@ import pytest
 from app.core.exceptions import ToolError
 from app.tools.shell_tools import RunCommandTool
 
-
 # ---------------------------------------------------------------------------
 # Allowlist pass cases
 # ---------------------------------------------------------------------------

@@ -47,10 +47,29 @@ class AgentExecutor:
         self.memory = memory
         self.settings = settings or get_settings()
 
+    def _resolve_request_settings(self, request: AgentRequest, provider_name: str) -> Settings:
+        """Apply any per-request API key / base_url onto a settings copy.
+
+        The frontend sends bring-your-own-key credentials in the request body.
+        These must override the process-wide settings transiently — never mutate
+        the shared singleton — so concurrent requests with different keys stay
+        isolated. When the request carries no credential, the base settings (env
+        / .env) are returned unchanged.
+        """
+
+        if not request.api_key and not request.base_url:
+            return self.settings
+        return self.settings.with_provider_credentials(
+            provider_name,
+            api_key=request.api_key,
+            base_url=request.base_url,
+        )
+
     def run(self, request: AgentRequest) -> AgentResponse:
         provider_name = (request.provider or self.settings.llm_provider).strip().lower()
-        model = request.model or self.settings.default_model_for_provider(provider_name)
-        llm = self.llm_provider or LLMProviderFactory.create(provider_name, settings=self.settings)
+        run_settings = self._resolve_request_settings(request, provider_name)
+        model = request.model or run_settings.default_model_for_provider(provider_name)
+        llm = self.llm_provider or LLMProviderFactory.create(provider_name, settings=run_settings)
 
         tools_schema = self.registry.describe_tools()
         user_content = self._build_user_content(request)
@@ -135,8 +154,9 @@ class AgentExecutor:
         from app.agent.events import AgentEvent
 
         provider_name = (request.provider or self.settings.llm_provider).strip().lower()
-        model = request.model or self.settings.default_model_for_provider(provider_name)
-        llm = self.llm_provider or LLMProviderFactory.create(provider_name, settings=self.settings)
+        run_settings = self._resolve_request_settings(request, provider_name)
+        model = request.model or run_settings.default_model_for_provider(provider_name)
+        llm = self.llm_provider or LLMProviderFactory.create(provider_name, settings=run_settings)
 
         tools_schema = self.registry.describe_tools()
         user_content = self._build_user_content(request)

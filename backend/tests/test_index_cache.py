@@ -11,13 +11,11 @@ Covers T-5 requirements:
 import threading
 import time
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from app.rag.index_cache import IndexCache, get_index_cache, project_key
-
 
 # ---------------------------------------------------------------------------
 # IndexCache unit tests

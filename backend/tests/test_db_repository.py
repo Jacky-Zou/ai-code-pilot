@@ -14,13 +14,12 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
-from app.db.models import ChatMessageRecord, Conversation
 from app.db.repository import ConversationRepository
-
 
 # ---------------------------------------------------------------------------
 # Shared in-memory engine fixture
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def memory_engine():
@@ -49,6 +48,7 @@ def repo(db_session):
 # ---------------------------------------------------------------------------
 # Unit tests: ConversationRepository
 # ---------------------------------------------------------------------------
+
 
 class TestEnsureConversation:
     def test_creates_new_conversation(self, repo: ConversationRepository) -> None:
@@ -128,6 +128,7 @@ class TestDeleteConversation:
 # Integration tests: HTTP routes
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def test_app(memory_engine):
     """FastAPI test client with DB overridden to use in-memory engine."""
@@ -147,9 +148,7 @@ def test_app(memory_engine):
 
 
 class TestSessionRoutes:
-    def test_get_messages_returns_persisted_data(
-        self, test_app: TestClient, memory_engine
-    ) -> None:
+    def test_get_messages_returns_persisted_data(self, test_app: TestClient, memory_engine) -> None:
         """Messages written via ConversationRepository appear in GET response."""
         with Session(memory_engine) as session:
             repo = ConversationRepository(session)
@@ -169,9 +168,7 @@ class TestSessionRoutes:
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_delete_session_removes_records(
-        self, test_app: TestClient, memory_engine
-    ) -> None:
+    def test_delete_session_removes_records(self, test_app: TestClient, memory_engine) -> None:
         with Session(memory_engine) as session:
             repo = ConversationRepository(session)
             repo.ensure_conversation("route-del-1")

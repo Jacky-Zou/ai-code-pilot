@@ -72,6 +72,10 @@ DEEPSEEK_MODEL=deepseek-v4-pro
 
 Runtime API requests can override provider and model per request. The backend currently supports real calls for `openai` and `deepseek`. Qwen, GLM, Claude, Gemini, and Moonshot remain roadmap providers until backend modules are added.
 
+### Bring-your-own-key (frontend)
+
+The **Model Center** panel lets you enter an API key for each provider directly in the UI. Keys are stored in `localStorage` and sent per request — the backend applies them transiently and never logs or persists them. After saving a key, click **↺** to load the real model list for that key via `POST /api/providers/models`. See [docs/model-discovery.md](docs/model-discovery.md).
+
 ## Frontend Workspace
 
 The UI is a three-column AI code workspace:

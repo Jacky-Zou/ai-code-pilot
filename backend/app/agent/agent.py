@@ -14,12 +14,16 @@ class AICodePilotAgent:
         project_path: str | None = None,
         provider: str | None = None,
         model: str | None = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
     ) -> AgentResponse:
         request = AgentRequest(
             message=message,
             project_path=project_path,
             provider=provider,
             model=model,
+            api_key=api_key,
+            base_url=base_url,
         )
         return self.executor.run(request)
 
@@ -29,6 +33,8 @@ class AICodePilotAgent:
         project_path: str | None = None,
         provider: str | None = None,
         model: str | None = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
     ) -> Iterator:
         """Stream agent execution as AgentEvent objects.
 
@@ -41,5 +47,7 @@ class AICodePilotAgent:
             project_path=project_path,
             provider=provider,
             model=model,
+            api_key=api_key,
+            base_url=base_url,
         )
         yield from self.executor.run_stream(request)

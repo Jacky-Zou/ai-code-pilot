@@ -168,6 +168,54 @@ class Settings(BaseSettings):
             return self.deepseek_model
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
+    def base_url_for_provider(self, provider_name: str) -> str:
+        """Return the OpenAI-compatible base URL for a provider.
+
+        Used by the model-discovery endpoint so a single helper drives both the
+        ``/models`` catalog call and chat completions for any supported vendor.
+        """
+
+        provider = provider_name.strip().lower()
+        if provider == "openai":
+            return self.openai_base_url
+        if provider == "deepseek":
+            return self.deepseek_base_url
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    def with_provider_credentials(
+        self,
+        provider_name: str,
+        api_key: str | None = None,
+        base_url: str | None = None,
+    ) -> "Settings":
+        """Return a copy with a provider's key/base_url overridden for one request.
+
+        The frontend stores API keys in the browser and sends them per request
+        (bring-your-own-key), so credentials must be injected transiently rather
+        than mutating the process-wide settings singleton. A blank override is
+        ignored, preserving any value already present in the environment.
+        """
+
+        provider = provider_name.strip().lower()
+        updates: dict[str, str] = {}
+        key = (api_key or "").strip()
+        url = (base_url or "").strip().rstrip("/")
+        if provider == "openai":
+            if key:
+                updates["openai_api_key"] = key
+            if url:
+                updates["openai_base_url"] = url
+        elif provider == "deepseek":
+            if key:
+                updates["deepseek_api_key"] = key
+            if url:
+                updates["deepseek_base_url"] = url
+        else:
+            raise ValueError(f"Unsupported LLM provider: {provider}")
+        if not updates:
+            return self
+        return self.model_copy(update=updates)
+
     @staticmethod
     def _ensure_supported(name: str, value: str, supported_values: set[str]) -> None:
         if value not in supported_values:

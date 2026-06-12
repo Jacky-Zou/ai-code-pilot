@@ -8,6 +8,10 @@ class AgentRequest(BaseModel):
     project_path: str | None = None
     provider: str | None = None
     model: str | None = None
+    # Bring-your-own-key: the browser sends the provider credential per request.
+    # Held only for the duration of the run; never logged or persisted.
+    api_key: str | None = None
+    base_url: str | None = None
 
 
 class ToolCall(BaseModel):

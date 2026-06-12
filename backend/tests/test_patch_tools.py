@@ -170,9 +170,7 @@ class TestExecutorPatchSuggestionsIntegration:
             llm_provider=PatchProvider(),
             settings=Settings(_env_file=None),
         )
-        response = executor.run(
-            AgentRequest(message="change x to 99", project_path=str(tmp_path))
-        )
+        response = executor.run(AgentRequest(message="change x to 99", project_path=str(tmp_path)))
 
         assert response.patch_suggestions, "patch_suggestions must not be empty"
         assert response.patch_suggestions[0].file_path == "target.py"

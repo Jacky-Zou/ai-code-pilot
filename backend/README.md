@@ -51,9 +51,19 @@ http://localhost:8000/docs
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/api/health` | Service health |
-| `POST` | `/api/chat` | Agent chat request |
+| `POST` | `/api/chat` | Agent chat request (supports per-request `api_key` / `provider` / `model`) |
+| `POST` | `/api/chat/stream` | Streaming agent run as Server-Sent Events |
+| `POST` | `/api/providers/models` | Discover the models a provider API key can use |
 | `POST` | `/api/projects/index` | Build RAG index and return project summary metadata |
 | `POST` | `/api/projects/search` | Search indexed code chunks |
+| `GET` | `/api/sessions/{id}/messages` | Fetch persisted conversation history |
+| `DELETE` | `/api/sessions/{id}` | Delete a conversation session |
+
+### Bring-your-own-key
+
+The frontend stores provider API keys in the browser and sends them per request. The backend
+applies them transiently (never logged or persisted) and falls back to `.env` when absent. See
+[../docs/model-discovery.md](../docs/model-discovery.md).
 
 ## Validation
 

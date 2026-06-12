@@ -8,13 +8,11 @@ And that done event contains conversation_id and non-empty answer.
 import json
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.llm.base import BaseLLMProvider
 from app.llm.schemas import ChatResult, LLMToolCall
 from app.main import create_app
-
 
 # ---------------------------------------------------------------------------
 # Fake provider that returns one tool call then a final answer

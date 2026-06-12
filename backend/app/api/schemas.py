@@ -30,6 +30,10 @@ class ChatRequest(BaseModel):
     provider: str | None = None
     model: str | None = None
     conversation_id: str | None = None
+    # Bring-your-own-key: browser-stored credentials sent per request.
+    # Never logged or persisted server-side.
+    api_key: str | None = None
+    base_url: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -108,6 +112,27 @@ class ProjectSearchResponse(BaseModel):
     """Response body for project semantic search."""
 
     results: list[ProjectSearchResult] = Field(default_factory=list)
+
+
+class ListModelsRequest(BaseModel):
+    """Request body for discovering the models a provider key can use.
+
+    The API key is supplied per request (bring-your-own-key) and is used only to
+    authenticate the upstream ``GET /models`` catalog call. It is never logged or
+    persisted. ``base_url`` is optional and defaults to the provider's standard
+    OpenAI-compatible endpoint from settings.
+    """
+
+    provider: str = Field(min_length=1)
+    api_key: str = Field(min_length=1)
+    base_url: str | None = None
+
+
+class ListModelsResponse(BaseModel):
+    """Response body listing the model ids available for a provider key."""
+
+    provider: str
+    models: list[str] = Field(default_factory=list)
 
 
 class ErrorResponse(BaseModel):

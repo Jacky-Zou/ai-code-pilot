@@ -7,10 +7,9 @@ works correctly for non-AICodePilot project layouts.
 import inspect
 from pathlib import Path
 
-import pytest
 
 from app.rag.retriever import CodeRetriever
-from app.rag.schemas import CodeChunk, RetrievedChunk
+from app.rag.schemas import RetrievedChunk
 from app.rag.vector_store import JsonVectorStore
 
 
@@ -22,26 +21,27 @@ class TestIntentFileBonusRemoved:
     """_intent_file_bonus must not exist on CodeRetriever after T-8."""
 
     def test_no_intent_file_bonus_method(self) -> None:
-        assert not hasattr(CodeRetriever, "_intent_file_bonus"), (
-            "_intent_file_bonus was not removed — hardcoded project-specific boosting is still present"
-        )
+        assert not hasattr(
+            CodeRetriever, "_intent_file_bonus"
+        ), "_intent_file_bonus was not removed — hardcoded project-specific boosting is still present"
 
     def test_no_hardcoded_paths_in_source_file_bonus(self) -> None:
         """_source_file_bonus must not reference AICodePilot-specific paths."""
 
         source = inspect.getsource(CodeRetriever._source_file_bonus)
-        forbidden = ["backend/app/", "frontend/", "backend/app/core/config.py",
-                     "backend/app/tools/registry.py", "backend/app/agent/executor.py"]
+        forbidden = [
+            "backend/app/",
+            "frontend/",
+            "backend/app/core/config.py",
+            "backend/app/tools/registry.py",
+            "backend/app/agent/executor.py",
+        ]
         for path in forbidden:
-            assert path not in source, (
-                f"Hardcoded AICodePilot path '{path}' found in _source_file_bonus — T-8 not complete"
-            )
+            assert path not in source, f"Hardcoded AICodePilot path '{path}' found in _source_file_bonus — T-8 not complete"
 
     def test_no_hardcoded_paths_in_rerank(self) -> None:
         source = inspect.getsource(CodeRetriever._rerank)
-        assert "intent_bonus" not in source, (
-            "intent_bonus is still referenced in _rerank — T-8 not complete"
-        )
+        assert "intent_bonus" not in source, "intent_bonus is still referenced in _rerank — T-8 not complete"
 
 
 class TestSourceFileBonusGeneric:
@@ -93,17 +93,11 @@ class TestRetrievalOnForeignRepo:
 
         # Build a minimal foreign repo structure
         (tmp_path / "src").mkdir()
-        (tmp_path / "src" / "main.go").write_text(
-            "package main\nfunc main() { println(\"hello\") }", encoding="utf-8"
-        )
+        (tmp_path / "src" / "main.go").write_text('package main\nfunc main() { println("hello") }', encoding="utf-8")
         (tmp_path / "lib").mkdir()
-        (tmp_path / "lib" / "util.go").write_text(
-            "package lib\nfunc Helper() string { return \"ok\" }", encoding="utf-8"
-        )
+        (tmp_path / "lib" / "util.go").write_text('package lib\nfunc Helper() string { return "ok" }', encoding="utf-8")
         (tmp_path / "tests").mkdir()
-        (tmp_path / "tests" / "main_test.go").write_text(
-            "package main_test\nfunc TestMain(t *testing.T) {}", encoding="utf-8"
-        )
+        (tmp_path / "tests" / "main_test.go").write_text("package main_test\nfunc TestMain(t *testing.T) {}", encoding="utf-8")
 
         from app.rag.embeddings import LocalHashEmbeddingClient
 

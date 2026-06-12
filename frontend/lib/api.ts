@@ -25,6 +25,8 @@ export interface ChatRequest {
   provider?: ProviderName | null;
   model?: string | null;
   conversation_id?: string | null;
+  api_key?: string | null;
+  base_url?: string | null;
 }
 
 export interface ChatResponse {
@@ -165,6 +167,28 @@ export function searchProject(
   options?: ApiClientOptions
 ): Promise<ProjectSearchResponse> {
   return request<ProjectSearchResponse, ProjectSearchRequest>("/api/projects/search", {
+    ...options,
+    method: "POST",
+    body: requestBody
+  });
+}
+
+export interface ListModelsRequest {
+  provider: string;
+  api_key: string;
+  base_url?: string | null;
+}
+
+export interface ListModelsResponse {
+  provider: string;
+  models: string[];
+}
+
+export function listProviderModels(
+  requestBody: ListModelsRequest,
+  options?: ApiClientOptions
+): Promise<ListModelsResponse> {
+  return request<ListModelsResponse, ListModelsRequest>("/api/providers/models", {
     ...options,
     method: "POST",
     body: requestBody

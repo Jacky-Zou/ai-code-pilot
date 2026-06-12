@@ -7,17 +7,17 @@ T-1 requirement: ConversationMemory is truly connected to the main flow.
 """
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
 
-
 # ---------------------------------------------------------------------------
 # Fake LLM provider: records all messages it receives and returns a simple answer.
 # ---------------------------------------------------------------------------
+
 
 class FakeLLMProvider:
     provider_name = "openai"
@@ -90,9 +90,9 @@ def test_second_request_receives_first_turn_in_history(
     # The second call's messages must include the first user question in history
     second_call_messages = fake.call_history[1]
     message_contents = [msg["content"] for msg in second_call_messages if msg.get("content")]
-    assert any("What is the project structure?" in content for content in message_contents), (
-        f"First turn not found in second call messages: {message_contents}"
-    )
+    assert any(
+        "What is the project structure?" in content for content in message_contents
+    ), f"First turn not found in second call messages: {message_contents}"
 
 
 def test_different_conversation_ids_are_isolated(
@@ -114,12 +114,8 @@ def test_different_conversation_ids_are_isolated(
 
     # The third call is for session A; it must NOT contain "Hello from B"
     third_call_messages = fake.call_history[2]
-    all_content = " ".join(
-        str(msg.get("content", "")) for msg in third_call_messages
-    )
-    assert "Hello from B" not in all_content, (
-        "Session B content leaked into session A's memory"
-    )
+    all_content = " ".join(str(msg.get("content", "")) for msg in third_call_messages)
+    assert "Hello from B" not in all_content, "Session B content leaked into session A's memory"
 
 
 def test_conversation_id_returned_when_not_provided(

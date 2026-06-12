@@ -13,6 +13,7 @@ class FailingAgent:
         project_path: str | None = None,
         provider: str | None = None,
         model: str | None = None,
+        **_: object,
     ) -> object:
         raise ConfigurationError("OPENAI_API_KEY is required")
 

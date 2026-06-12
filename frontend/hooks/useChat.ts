@@ -23,6 +23,7 @@ type SendOptions = {
   projectPath?: string | null;
   provider?: string | null;
   model?: string | null;
+  apiKey?: string | null;
   baseUrl?: string;
 };
 
@@ -47,7 +48,7 @@ export function useChat() {
   const abortRef = useRef<AbortController | null>(null);
 
   const send = useCallback(async (opts: SendOptions) => {
-    const { message, projectPath, provider, model, baseUrl } = opts;
+    const { message, projectPath, provider, model, apiKey, baseUrl } = opts;
 
     // Abort any in-flight stream before starting a new one
     abortRef.current?.abort();
@@ -80,6 +81,7 @@ export function useChat() {
         provider: provider ?? null,
         model: model ?? null,
         conversation_id: conversationIdRef.current ?? undefined,
+        api_key: apiKey ?? null,
       };
 
       await consumeSse(

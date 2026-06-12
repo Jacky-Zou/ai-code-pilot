@@ -81,6 +81,8 @@ def chat(
         project_path=project_path,
         provider=request.provider,
         model=request.model,
+        api_key=request.api_key,
+        base_url=request.base_url,
     )
 
     logger.info(
@@ -137,6 +139,8 @@ def chat_stream(request: ChatRequest) -> StreamingResponse:
                 project_path=project_path,
                 provider=request.provider,
                 model=request.model,
+                api_key=request.api_key,
+                base_url=request.base_url,
             ):
                 if event.type == "done":
                     event.data["conversation_id"] = conversation_id

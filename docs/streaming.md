@@ -40,11 +40,18 @@ Content-Type: application/json
 {
   "message": "How is the agent loop implemented?",
   "project_path": "/workspace/AICodePilot",
-  "conversation_id": "abc-123"
+  "conversation_id": "abc-123",
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "api_key": "sk-..."
 }
 ```
 
 Include `conversation_id` from a prior `done` event to continue a multi-turn session.
+`provider` / `model` / `api_key` are optional bring-your-own-key fields: when present the
+backend uses them for this request only (never logged or persisted); when absent it falls
+back to the server's `.env` configuration. See [model-discovery.md](model-discovery.md)
+for how the key drives the available model list.
 
 ## Frontend Integration
 

@@ -20,7 +20,6 @@ from sqlmodel.pool import StaticPool
 
 from app.agent.agent import AICodePilotAgent
 from app.agent.executor import AgentExecutor
-from app.agent.schemas import AgentResponse
 from app.api.routes_chat import get_agent
 from app.db.engine import get_session
 from app.llm.base import BaseLLMProvider

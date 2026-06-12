@@ -10,7 +10,6 @@ Covers T-3 requirements:
 
 import json
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -20,7 +19,6 @@ from app.core.config import Settings
 from app.llm.base import BaseLLMProvider
 from app.llm.client import extract_chat_result
 from app.llm.schemas import ChatResult, LLMToolCall
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -224,9 +222,7 @@ class TestExecutorToolCallingLoop:
             def chat_with_tools(self, messages, tools, model=None):
                 raise NotImplementedError
 
-        executor = AgentExecutor(
-            llm_provider=TextOnlyProvider(), settings=Settings(_env_file=None)
-        )
+        executor = AgentExecutor(llm_provider=TextOnlyProvider(), settings=Settings(_env_file=None))
         response = executor.run(AgentRequest(message="hello", project_path=str(tmp_path)))
 
         assert response.answer == "text fallback answer"
@@ -246,11 +242,9 @@ class TestExecutorToolCallingLoop:
                 ChatResult(content="Done within limit.", tool_calls=[]),
             ]
         )
-        executor = AgentExecutor(
-            llm_provider=provider, settings=Settings(AGENT_MAX_STEPS=3, _env_file=None)
-        )
+        executor = AgentExecutor(llm_provider=provider, settings=Settings(AGENT_MAX_STEPS=3, _env_file=None))
 
-        response = executor.run(AgentRequest(message="read f.py", project_path=str(tmp_path)))
+        executor.run(AgentRequest(message="read f.py", project_path=str(tmp_path)))
 
         # With max_steps=3 and loop detection on identical calls, executor should
         # stop at 3 steps and request final summary.

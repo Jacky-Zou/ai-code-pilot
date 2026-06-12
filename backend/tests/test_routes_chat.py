@@ -17,6 +17,7 @@ class FakeAgent:
         project_path: str | None = None,
         provider: str | None = None,
         model: str | None = None,
+        **_: object,
     ) -> AgentResponse:
         self.calls.append(
             {
