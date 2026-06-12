@@ -53,6 +53,13 @@ class Settings(BaseSettings):
     # ENABLE_SHELL_TOOL=true only in trusted local environments.
     enable_shell_tool: bool = Field(default=False, alias="ENABLE_SHELL_TOOL")
 
+    # SQLite persistence. The default path is relative to the project root so
+    # the database file lives in data/ alongside vector store artifacts.
+    database_url: str = Field(
+        default="sqlite:///./data/aicodepilot.db",
+        alias="DATABASE_URL",
+    )
+
     model_config = SettingsConfigDict(
         env_file=(ROOT_ENV_FILE, ".env"),
         env_file_encoding="utf-8",

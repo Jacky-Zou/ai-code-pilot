@@ -3,12 +3,15 @@ from collections.abc import Iterator
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
+from sqlmodel import Session
 
 from app.agent.agent import AICodePilotAgent
 from app.agent.executor import AgentExecutor
 from app.api.schemas import ChatRequest, ChatResponse
 from app.core.logger import get_logger
 from app.core.project_paths import normalize_project_path
+from app.db.engine import get_session
+from app.db.repository import ConversationRepository
 from app.memory.session_store import get_session_store
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -39,6 +42,7 @@ def _build_session_agent(conversation_id: str) -> AICodePilotAgent:
 def chat(
     request: ChatRequest,
     injected_agent: AICodePilotAgent = Depends(get_agent),
+    db: Session = Depends(get_session),
 ) -> ChatResponse:
     """Run the coding Agent for one user message with multi-turn memory.
 
@@ -87,6 +91,12 @@ def chat(
         len(response.references),
         conversation_id,
     )
+
+    # Persist user message and assistant answer to the database
+    repo = ConversationRepository(db)
+    repo.ensure_conversation(conversation_id, title=request.message[:80])
+    repo.append_message(conversation_id, "user", request.message)
+    repo.append_message(conversation_id, "assistant", response.answer)
 
     return ChatResponse(
         answer=response.answer,

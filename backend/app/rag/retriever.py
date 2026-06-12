@@ -113,13 +113,7 @@ class CodeRetriever:
             file_token_hits = sum(1 for token in tokens if token in file_path_text)
             exact_query_bonus = 0.2 if query.lower() in searchable else 0.0
             source_bonus = self._source_file_bonus(chunk.file_path)
-            hybrid_score = (
-                chunk.score
-                + (0.08 * token_hits)
-                + (0.16 * file_token_hits)
-                + exact_query_bonus
-                + source_bonus
-            )
+            hybrid_score = chunk.score + (0.08 * token_hits) + (0.16 * file_token_hits) + exact_query_bonus + source_bonus
             reranked.append(
                 RetrievedChunk(
                     file_path=chunk.file_path,

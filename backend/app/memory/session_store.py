@@ -59,9 +59,7 @@ class SessionStore:
             entry = self._entries.get(cleaned)
             if entry is None:
                 self._enforce_capacity_locked()
-                entry = _SessionEntry(
-                    memory=ConversationMemory(max_turns=self._max_turns, conversation_id=cleaned)
-                )
+                entry = _SessionEntry(memory=ConversationMemory(max_turns=self._max_turns, conversation_id=cleaned))
                 self._entries[cleaned] = entry
                 logger.info(
                     "Session created conversation_id=%s total_sessions=%s",
@@ -81,11 +79,7 @@ class SessionStore:
             return len(self._entries)
 
     def _evict_expired_locked(self, now: float) -> None:
-        expired = [
-            key
-            for key, entry in self._entries.items()
-            if now - entry.last_access > self._ttl_seconds
-        ]
+        expired = [key for key, entry in self._entries.items() if now - entry.last_access > self._ttl_seconds]
         for key in expired:
             del self._entries[key]
         if expired:
@@ -98,9 +92,7 @@ class SessionStore:
         while len(self._entries) >= self._max_sessions:
             oldest_key = min(self._entries, key=lambda key: self._entries[key].last_access)
             del self._entries[oldest_key]
-            logger.warning(
-                "Session capacity reached, evicted LRU conversation_id=%s", oldest_key
-            )
+            logger.warning("Session capacity reached, evicted LRU conversation_id=%s", oldest_key)
 
 
 _session_store: SessionStore | None = None

@@ -310,9 +310,7 @@ class AgentExecutor:
                 tool_results.append(tool_result)
                 result_content = json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str)
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_content})
-                logger.info(
-                    "Tool step=%s tool=%s error=%s", step, tool_result.name, bool(tool_result.error)
-                )
+                logger.info("Tool step=%s tool=%s error=%s", step, tool_result.name, bool(tool_result.error))
 
         # Budget exhausted without a final answer; ask the model to synthesize.
         return self._request_final_summary(llm, messages, model), tool_results
@@ -391,8 +389,7 @@ class AgentExecutor:
                     {"role": "assistant", "content": raw_response},
                     {
                         "role": "user",
-                        "content": "Tool result:\n"
-                        + json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str),
+                        "content": "Tool result:\n" + json.dumps(tool_result.model_dump(), ensure_ascii=False, default=str),
                     },
                 ]
             )
@@ -496,9 +493,7 @@ class AgentExecutor:
     def _looks_like_protocol_leak(self, answer: str) -> bool:
         return bool(_PROTOCOL_LEAK_PATTERN.search(answer))
 
-    def _clean_final_answer(
-        self, answer: str, tool_results: list[ToolResult], user_content: str
-    ) -> str:
+    def _clean_final_answer(self, answer: str, tool_results: list[ToolResult], user_content: str) -> str:
         cleaned = answer.strip()
         if not cleaned or self._looks_like_protocol_leak(cleaned):
             return self._build_fallback_answer(tool_results, user_content)
@@ -506,9 +501,7 @@ class AgentExecutor:
             return self._build_fallback_answer(tool_results, user_content)
         return cleaned
 
-    def _build_fallback_answer(
-        self, tool_results: list[ToolResult], user_content: str = ""
-    ) -> str:
+    def _build_fallback_answer(self, tool_results: list[ToolResult], user_content: str = "") -> str:
         if not tool_results:
             if self._contains_cjk(user_content):
                 return "模型没有返回可用的最终答案。"
@@ -543,9 +536,7 @@ class AgentExecutor:
             elif tool_result.name == "retrieve_code" and isinstance(tool_result.result, dict):
                 matches = tool_result.result.get("matches", [])[:5]
                 for match in matches:
-                    lines.append(
-                        f"- `{match.get('file_path')}` lines {match.get('start_line')}-{match.get('end_line')}"
-                    )
+                    lines.append(f"- `{match.get('file_path')}` lines {match.get('start_line')}-{match.get('end_line')}")
             else:
                 if self._contains_cjk(user_content):
                     lines.append(f"- `{tool_result.name}` 执行成功。")
@@ -568,9 +559,7 @@ class AgentExecutor:
     def _contains_cjk(self, content: str) -> bool:
         return any("一" <= character <= "鿿" for character in content)
 
-    def _build_messages(
-        self, system_prompt: str, user_content: str
-    ) -> list[dict[str, Any]]:
+    def _build_messages(self, system_prompt: str, user_content: str) -> list[dict[str, Any]]:
         if self.memory is None:
             return [
                 {"role": "system", "content": system_prompt},
@@ -643,17 +632,13 @@ class AgentExecutor:
             ]
         return []
 
-    def _extract_references_from_results(
-        self, tool_results: list[ToolResult]
-    ) -> list[CodeReference]:
+    def _extract_references_from_results(self, tool_results: list[ToolResult]) -> list[CodeReference]:
         references: list[CodeReference] = []
         for tool_result in tool_results:
             references.extend(self._extract_references(tool_result))
         return references
 
-    def _extract_patch_suggestions(
-        self, tool_result: ToolResult
-    ) -> list[PatchSuggestion]:
+    def _extract_patch_suggestions(self, tool_result: ToolResult) -> list[PatchSuggestion]:
         if tool_result.error or not isinstance(tool_result.result, dict):
             return []
 
@@ -666,9 +651,7 @@ class AgentExecutor:
                 suggestions.append(PatchSuggestion.model_validate(item))
         return suggestions
 
-    def _extract_patch_suggestions_from_results(
-        self, tool_results: list[ToolResult]
-    ) -> list[PatchSuggestion]:
+    def _extract_patch_suggestions_from_results(self, tool_results: list[ToolResult]) -> list[PatchSuggestion]:
         suggestions: list[PatchSuggestion] = []
         for tool_result in tool_results:
             suggestions.extend(self._extract_patch_suggestions(tool_result))

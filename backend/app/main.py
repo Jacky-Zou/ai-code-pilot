@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.agent.agent import AICodePilotAgent
 from app.api.routes_chat import router as chat_router
 from app.api.routes_project import router as project_router
+from app.api.routes_session import router as session_router
+from app.db.engine import init_db
 from app.api.schemas import HealthResponse
 from app.core.config import get_settings
 from app.core.exceptions import AICodePilotError, register_exception_handlers
@@ -35,8 +37,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     register_exception_handlers(application)
+    init_db()
     application.include_router(chat_router)
     application.include_router(project_router)
+    application.include_router(session_router)
 
     @application.get("/api/health", response_model=HealthResponse, tags=["health"])
     def health() -> HealthResponse:

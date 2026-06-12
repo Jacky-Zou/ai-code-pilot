@@ -19,7 +19,10 @@ class RetrieveCodeArgs(BaseModel):
 
 class RetrieveCodeTool(BaseTool):
     name = "retrieve_code"
-    description = "Retrieve Top-K semantically relevant code chunks with file paths and line ranges. Indexes the project on first call; subsequent calls within the TTL reuse the cached index."
+    description = (
+        "Retrieve Top-K semantically relevant code chunks with file paths and line ranges. "
+        "Indexes the project on first call; subsequent calls within the TTL reuse the cached index."
+    )
     args_schema = RetrieveCodeArgs
 
     def run(self, **kwargs: Any) -> dict[str, Any]:
@@ -30,9 +33,7 @@ class RetrieveCodeTool(BaseTool):
         cache = get_index_cache()
 
         embedding_client = (
-            LocalHashEmbeddingClient()
-            if args.embedding_provider == "local"
-            else create_embedding_client(args.embedding_provider)
+            LocalHashEmbeddingClient() if args.embedding_provider == "local" else create_embedding_client(args.embedding_provider)
         )
         # Each project gets its own isolated Chroma collection via pkey,
         # so indexing project B never overwrites project A's index (fixes D7).
