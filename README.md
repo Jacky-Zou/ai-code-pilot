@@ -6,12 +6,14 @@ The project is built as an engineering-grade LLM Agent system rather than a simp
 
 ## Features
 
-- Handwritten Agent loop with structured planning, tool execution, and final answer synthesis.
+- Handwritten Agent loop with native tool calling (OpenAI function-calling protocol), loop detection, and text-protocol fallback.
 - Multi-provider LLM layer with OpenAI and DeepSeek support.
-- Safe tools for file listing, project tree inspection, file reading, text search, log analysis, command execution, and patch suggestions.
-- RAG pipeline with project scanning, line-based chunking, embeddings, vector storage, and Top-K retrieval.
-- FastAPI backend for health, chat, project indexing, and project search.
-- Next.js frontend with Model Center, Workspace management, Agent Chat, Agent Steps, Code Evidence, and Project Summary.
+- Thread-safe session store with TTL + LRU eviction; SQLite persistence for conversation and message history.
+- SSE streaming endpoint with per-step events (thinking, tool_start, tool_end, done, error).
+- Safe tools for file listing, project tree inspection, file reading, text search, log analysis, patch suggestions, and optional shell execution.
+- RAG pipeline with per-project index isolation, 5-minute TTL cache, and two embedding modes: offline local hash (default) or OpenAI semantic.
+- FastAPI backend for health, chat (sync + stream), project indexing, search, and session management.
+- Next.js frontend with Model Center, Workspace management, Agent Chat, SSE tool timeline, Code Evidence, and Project Summary.
 - No-Docker local startup for backend and frontend, with Docker Compose kept as an optional deployment path.
 - CI-ready gates for tests, linting, formatting, and typing.
 
@@ -178,9 +180,12 @@ NEXT_PUBLIC_DEFAULT_PROJECT_PATH=/workspace
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/api/health` | Check service status |
-| `POST` | `/api/chat` | Ask the Agent a codebase question |
-| `POST` | `/api/projects/index` | Index a backend-visible project path and return project summary metadata |
+| `POST` | `/api/chat` | Synchronous agent run with multi-turn memory |
+| `POST` | `/api/chat/stream` | SSE streaming agent run (real-time events) |
+| `POST` | `/api/projects/index` | Index a backend-visible project path |
 | `POST` | `/api/projects/search` | Search indexed code chunks |
+| `GET` | `/api/sessions/{id}/messages` | Retrieve persisted message history |
+| `DELETE` | `/api/sessions/{id}` | Delete a session |
 
 Example chat request:
 
@@ -219,6 +224,7 @@ npm run build
 - [Agent Design](docs/agent-design.md)
 - [RAG Design](docs/rag-design.md)
 - [API](docs/api.md)
+- [Streaming Protocol](docs/streaming.md)
 - [Security](docs/security.md)
 - [Deployment](docs/deployment.md)
 - [User Guide](docs/user-guide.md)

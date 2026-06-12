@@ -1,6 +1,6 @@
 # Agent Design 🤖
 
-The first implementation intentionally hand-writes the Agent loop instead of depending on LangChain, CrewAI, AutoGen, or another large Agent framework. This keeps the tool-calling mechanism explicit, testable, and easy to explain.
+The implementation intentionally hand-writes the Agent loop instead of depending on LangChain, CrewAI, AutoGen, or another large Agent framework. This keeps the tool-calling mechanism explicit, testable, and easy to explain.
 
 ## Goals 🎯
 
@@ -8,15 +8,30 @@ The first implementation intentionally hand-writes the Agent loop instead of dep
 - Keep the execution loop small enough to discuss in interviews.
 - Support multiple LLM providers through one interface.
 - Keep codebase and filesystem operations constrained by safety checks.
-- Return tool calls and references in a shape that the CLI, API, and future UI can reuse.
+- Return tool calls and references in a shape that the CLI, API, and UI can reuse.
 
 ## Provider Resolution 🔁
 
-Agent requests may pass `provider` and `model`. If they are omitted, `LLM_PROVIDER` and the provider default model from settings are used. OpenAI is the default provider and DeepSeek is supported by the same `BaseLLMProvider` interface.
+Agent requests may pass `provider` and `model`. If they are omitted, `LLM_PROVIDER` and the provider default model from settings are used. OpenAI is the default provider; DeepSeek is supported through the same `BaseLLMProvider` interface.
 
-## Tool Calling Protocol 🛠️
+## Tool Calling — Native Function Calling (Primary Path) 🛠️
 
-The LLM must respond with one of two JSON payloads:
+The primary execution path uses the OpenAI function-calling protocol (`chat_with_tools`). The model returns a structured `tool_calls` field instead of embedding JSON in the message text. This is more reliable than regex parsing and aligns with how Aider, Cline, and OpenHands operate.
+
+```text
+LLM.chat_with_tools(messages, tools) -> ChatResult(content, tool_calls)
+AgentExecutor dispatches tool_calls directly — no regex needed
+```
+
+Providers that do not implement `chat_with_tools` fall back to the legacy text-protocol parser in `planner.py`.
+
+### Loop Detection
+
+Each step tracks a `(tool_name, frozen_args)` call signature. Identical back-to-back calls are detected and an error result is injected to steer the model toward a final answer.
+
+## Text Protocol (Fallback Path Only)
+
+When a provider raises `NotImplementedError` on `chat_with_tools`, the executor falls back to `_run_text_protocol_loop`. The model must respond with one of two JSON payloads:
 
 ```json
 {"type":"action","tool":"search_text","arguments":{"keyword":"FastAPI"}}
@@ -26,65 +41,86 @@ The LLM must respond with one of two JSON payloads:
 {"type":"final","answer":"clear professional answer"}
 ```
 
-The executor parses the JSON, dispatches tool actions through `ToolRegistry`, records the result, and asks the LLM for a final summary.
-
 ## Available Tools 📦
 
-- `list_files(project_path)`: lists files under a project root while ignoring dependency/build directories.
-- `read_file(file_path, project_path)`: reads UTF-8 text files inside the project root with size and binary safeguards.
-- `search_text(project_path, keyword)`: recursively searches text files and returns file paths, line numbers, and matching lines.
-- `retrieve_code(project_path, query, top_k)`: retrieves semantic code chunks with path, line range, content, and score.
+- `list_files(project_path)` — lists files under a project root, ignoring dependency/build dirs
+- `read_file(file_path, project_path)` — reads UTF-8 text files with size and binary safeguards (max 512 KB)
+- `project_tree(project_path)` — directory tree with depth/entry limits
+- `find_files(project_path, pattern)` — glob-based file finder
+- `search_text(project_path, keyword)` — text search returning file path, line number, matching line
+- `retrieve_code(project_path, query, top_k)` — semantic code chunk retrieval (see RAG section)
+- `analyze_log(log_text)` — log severity counting, exception extraction, traceback frames
+- `run_command(command, cwd)` — restricted shell execution (allowlist only, gated by `ENABLE_SHELL_TOOL`)
+- `propose_patch(file_path, updated_content)` — generates unified diff without writing any file
 
 ## Execution Flow 🔄
 
-1. Receive user task and optional project path/provider/model.
-2. Resolve provider and model.
-3. Build system prompt with available tool descriptions.
-4. Ask the LLM for either a final answer or structured JSON action.
-5. Parse action and dispatch to Tool Registry.
-6. Execute tool and record result.
-7. Send tool result back to LLM for final answer.
-8. Return answer, provider, model, tool calls, and references.
+1. Receive user message, optional project path, provider, model.
+2. Resolve provider and model from settings or request override.
+3. Build messages: system prompt + prior memory turns + current user request.
+4. Primary path: call `chat_with_tools` → dispatch `tool_calls` → append results in OpenAI multi-turn format.
+5. Fallback path (no tool calling): text protocol via `planner.parse_agent_action`.
+6. After budget or final answer, run `_clean_final_answer` and `_build_fallback_answer` if needed.
+7. Call `_remember_turn(original_message, answer)` — stores only raw user text + final answer.
+8. Return `AgentResponse(answer, provider, model, tool_calls, references, patch_suggestions)`.
 
 ## Conversation Memory 🧠
 
-Phase 5 introduces `ConversationMemory` as a bounded memory primitive for multi-turn development assistance. It stores recent user, assistant, and tool messages with a stable conversation id and trims history by complete user turns.
+`SessionStore` (thread-safe, TTL + LRU) maps `conversation_id → ConversationMemory`. The HTTP layer is stateless; the session store keeps each conversation's bounded history alive between requests.
 
-The memory exports provider-ready `role` / `content` messages while keeping the system prompt outside rolling history, so Agent safety instructions and tool descriptions remain explicit on every request.
+Memory stores only the user question and assistant final answer — tool-call payloads are excluded to prevent over-long prompts and avoid biasing the model into repeating previous tool calls.
 
-This task only adds the tested memory module. Wiring memory into the Agent runtime is handled by the later Phase 5 integration task, which keeps this step small and easy to validate.
+The in-memory session store is complemented by **SQLite persistence** (`db/`): each user message and assistant answer is also written to `chat_messages` so history survives server restarts.
 
-## Log Analysis Tool 🧾
+## SSE Streaming 📡
 
-Phase 5 adds `AnalyzeLogTool` as the implementation behind `analyze_log(log_text)`. The tool scans raw log text, counts severity levels, extracts likely exception names, captures Python traceback frames, and returns concise debugging recommendations. It is intentionally read-only: it never executes shell commands, opens files, or mutates project state.
+`AgentExecutor.run_stream()` yields `AgentEvent` objects:
 
-The tool is implemented and tested independently first. Registering it as part of the default Agent tool set is handled by the later Phase 5 integration task.
+| Event type | Data |
+|---|---|
+| `thinking` | `{"step": int}` |
+| `tool_start` | `{"tool": str, "arguments": {...}}` |
+| `tool_end` | `{"tool": str, "error": str\|null}` |
+| `answer_delta` | `{"text": str}` — reserved for token streaming |
+| `done` | full result + `conversation_id` |
+| `error` | `{"detail": str}` |
 
-## Safe Shell Tool 🛡️
-
-Phase 5 adds `RunCommandTool` as the implementation behind `run_command(command, cwd)`. It executes a single command with `shell=False`, captures `stdout`, `stderr`, and `exit_code`, and returns a structured timeout result when the command exceeds the configured limit.
-
-The tool rejects command chaining, pipes, redirects, command substitution, and destructive executables such as `rm`, `del`, `format`, and `shutdown`. When `project_path` is provided, `cwd` must resolve inside that project root.
-
-Like the other advanced tools, this task implements and tests the shell tool independently. Default Agent registration is handled by the later Phase 5 integration task.
+See [streaming.md](streaming.md) for the full SSE event protocol.
 
 ## Patch Suggestions 🧩
 
-Phase 5 adds a safe patch suggestion primitive for development assistance. `generate_patch_suggestion` receives a project-relative path, original text, and proposed updated text, then returns a unified diff stored in `PatchSuggestion`.
+`ProposePatchTool` reads the current file, computes a unified diff against `updated_content`, and returns the diff as an advisory `patch_suggestion`. The tool never writes to disk. The executor extracts suggestions from tool results and forwards them in `AgentResponse.patch_suggestions`.
 
-The patcher is deliberately pure: it never opens files, writes files, or applies changes. This keeps the Agent in an advisory role, where users can inspect generated diffs before deciding whether to apply them.
+## Log Analysis Tool 🧾
 
-## Advanced Tool Integration 🔗
+`AnalyzeLogTool` scans raw log text, counts severity levels, extracts exception names, captures Python traceback frames, and returns debugging recommendations. It is read-only and never executes shell commands.
 
-The default `ToolRegistry` now includes the advanced `analyze_log` and `run_command` tools alongside file, search, and retrieval tools. `AgentExecutor` also accepts an optional `ConversationMemory` instance, appends bounded prior turns after the current system prompt, and records completed turns after each answer.
+## Safe Shell Tool 🛡️
 
-Patch suggestions remain advisory. The executor validates any `patch_suggestions` returned by a tool and forwards them in `AgentResponse`, but it never applies the diff.
+`RunCommandTool` is gated by `ENABLE_SHELL_TOOL=true` (default `false`). It uses an explicit allowlist — not a blacklist — to reduce the attack surface:
 
-The related safety boundaries for memory, log analysis, shell execution, and patch suggestions are detailed in [Security](security.md).
+- Allowed: `git:{status,log,diff,show,branch,remote,ls-files}`, `ls`, `cat`, `pwd`, `python/python3:{-m,--version,-V}`, `pytest`, `node:--version`, `npm:{run,test,ci,list}`, `ruff`, `mypy`, `black`
+- Blocked by construction: `git push`, `python -c`, `rm`, `curl`, `pip install`, shell pipes/redirects/chaining.
+
+## RAG Embedding Modes 🔍
+
+Two embedding modes are available:
+
+| Mode | Setting | Use case |
+|---|---|---|
+| **Local hash** (default) | `EMBEDDING_PROVIDER=local` | Offline, no API key needed, deterministic word-hash vectors |
+| **OpenAI** | `EMBEDDING_PROVIDER=openai` | Semantic similarity, requires `OPENAI_API_KEY` |
+
+Each project gets its own isolated Chroma collection (`acp_{folder}_{hash[:12]}`). The `IndexCache` skips re-indexing within a 5-minute TTL.
 
 ## API Integration 🌐
 
-Phase 3 exposes the same Agent through `POST /api/chat`. The API layer does not bypass the Agent loop; it validates the request, passes through `message`, `project_path`, `provider`, and `model`, then returns `answer`, `tool_calls`, and `references`.
+| Endpoint | Description |
+|---|---|
+| `POST /api/chat` | Synchronous agent run with multi-turn memory |
+| `POST /api/chat/stream` | SSE streaming agent run |
+| `GET /api/sessions/{id}/messages` | Retrieve persisted message history |
+| `DELETE /api/sessions/{id}` | Delete session from DB and in-memory store |
 
 ## CLI Demo 💻
 
@@ -93,8 +129,7 @@ cd backend
 python -m app.main --project-path ..
 ```
 
-The CLI starts an interactive loop. Without a configured API key, provider calls return a clear configuration error instead of attempting an unauthenticated request.
-
 ## Validation ✅
 
-Agent validation includes schema tests, provider factory tests, tool tests, executor tests, API route tests, and full backend tests at phase completion. This guards against turning the project into a generic chatbot and keeps the focus on codebase understanding and development workflows.
+Agent validation includes schema tests, provider factory tests, tool tests, executor tests, API route tests, and full backend tests. The primary test suites cover: `test_executor_tool_calling.py`, `test_session_store.py`, `test_db_repository.py`, `test_patch_tools.py`, `test_shell_tools.py`.
+

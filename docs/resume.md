@@ -1,20 +1,24 @@
 # Resume Guide 💼
 
-AICodePilot is intended as a resume-ready AI engineering project after all phases are complete. Current progress already demonstrates a handwritten Agent, multi-provider abstraction, safe tools, RAG retrieval, and a FastAPI service layer.
+AICodePilot is a resume-ready AI engineering project that demonstrates a production-oriented handwritten Agent loop with persistent memory, native tool calling, SSE streaming, RAG retrieval, and a FastAPI + Next.js full-stack integration.
 
 ## Draft Project Entry 📝
 
 AICodePilot: LLM Agent based AI codebase understanding and development assistant.
 
-Tech stack: Python, FastAPI, React, LLM API, Tool Calling, RAG, FAISS/Chroma, Docker, pytest.
+Tech stack: Python, FastAPI, React, Next.js, LLM API, native tool calling (OpenAI function-calling format), RAG with Chroma vector store, SSE streaming, SQLite persistence, pytest.
 
-The final version will demonstrate codebase semantic retrieval, code Q&A, log analysis, tool calling, safe command execution, model provider switching, web interaction, and Docker deployment.
+## Delivered Capabilities ✅
 
-## Current Highlights ✅
+- Handwritten ReAct Agent loop with native tool_calls (no LangChain dependency).
+- OpenAI and DeepSeek provider abstraction; falls back to text-protocol for providers without function calling.
+- Thread-safe `SessionStore` (TTL + LRU) for multi-turn conversation memory.
+- SQLite persistence via SQLModel — conversation and message history survives restarts.
+- SSE streaming endpoint (`/api/chat/stream`) with per-step events (thinking, tool_start, tool_end, done, error).
+- Safe tool layer: file ops, semantic search (Chroma), log analysis, propose_patch (diff-only, no writes).
+- Shell tool gated by `ENABLE_SHELL_TOOL` with explicit command allowlist — not a blacklist.
+- RAG with per-project index isolation (`IndexCache` + Chroma collection per project).
+- Default embedding mode: **offline local hash** (no API key needed); upgradeable to OpenAI semantic embeddings via `EMBEDDING_PROVIDER=openai`.
+- Patch suggestions: `propose_patch` tool generates reviewable unified diffs without modifying any file.
+- 248+ tests, ruff + black + mypy enforced, full CI gates.
 
-- Handwritten Agent execution loop with structured JSON tool calling.
-- OpenAI and DeepSeek provider abstraction.
-- Safe file listing, file reading, text search, and RAG retrieval tools.
-- Chroma-backed local code retrieval with file path and line metadata.
-- FastAPI endpoints for health, chat, project indexing, and project search.
-- Focused tests plus phase-level full backend validation.
