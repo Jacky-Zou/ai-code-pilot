@@ -181,6 +181,14 @@ button:disabled:hover {
   grid-template-columns: 52px minmax(820px, 1fr) minmax(340px, 410px);
 }
 
+.workspace-grid.right-collapsed {
+  grid-template-columns: minmax(340px, 380px) minmax(820px, 1fr) 52px;
+}
+
+.workspace-grid.left-collapsed.right-collapsed {
+  grid-template-columns: 52px minmax(900px, 1fr) 52px;
+}
+
 .workspace-column,
 .right-rail {
   display: flex;
@@ -205,10 +213,10 @@ button:disabled:hover {
 
 .left-rail-body {
   display: grid;
-  gap: 12px;
+  gap: 8px;
   max-height: calc(100vh - 170px);
   min-width: 0;
-  overflow-x: visible;
+  overflow-x: hidden;
   overflow-y: auto;
   padding-right: 2px;
   transition:
@@ -577,6 +585,138 @@ button:disabled:hover {
   display: grid;
   gap: 7px;
   overflow: visible;
+}
+
+/* ─── CollapsiblePanel ──────────────────────────────────── */
+.collapsible-panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  overflow: hidden;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.collapsible-panel:hover {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+}
+
+.collapsible-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  user-select: none;
+  min-height: 42px;
+  background: transparent;
+  transition: background 140ms ease;
+}
+
+.collapsible-panel-header:hover {
+  background: color-mix(in srgb, var(--primary-soft) 40%, var(--panel));
+}
+
+.collapsible-panel-logo {
+  display: inline-flex;
+  height: 28px;
+  width: 28px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  color: white;
+  font-size: 11px;
+  position: relative;
+  transition: background 200ms ease;
+}
+
+.collapsible-panel-logo .logo-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 160ms ease;
+}
+
+.collapsible-panel-logo .toggle-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.collapsible-panel-header:hover .collapsible-panel-logo .logo-icon {
+  opacity: 0;
+}
+
+.collapsible-panel-header:hover .collapsible-panel-logo .toggle-icon {
+  opacity: 1;
+}
+
+.collapsible-panel-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.collapsible-panel-titles h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 760;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collapsible-panel-titles p {
+  margin: 1px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collapsible-panel-chevron {
+  flex: 0 0 auto;
+  color: var(--muted);
+  transition: transform 200ms ease;
+}
+
+.collapsible-panel-chevron.open {
+  transform: rotate(180deg);
+}
+
+.collapsible-panel-body {
+  padding: 0 12px 12px;
+  display: grid;
+  gap: 7px;
+  animation: panel-open 160ms ease;
+}
+
+@keyframes panel-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.provider-field-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.provider-field-row .field-input {
+  flex: 1;
+}
+
+.provider-field-row .model-select {
+  flex: 1;
+  min-width: 0;
 }
 
 .model-region-tabs {
@@ -2100,6 +2240,139 @@ button:disabled:hover {
   color: var(--primary);
   font-size: 12px;
   font-weight: 800;
+}
+
+/* ─── Message copy button ───────────────────────────────── */
+.message-bubble {
+  position: relative;
+}
+
+.message-copy-btn {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  width: 22px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 140ms ease, color 140ms ease;
+  padding: 0;
+}
+
+.message-bubble:hover .message-copy-btn {
+  opacity: 1;
+}
+
+.message-copy-btn:hover {
+  color: var(--primary);
+}
+
+/* ─── Composer input color feedback ───────────────────── */
+.composer textarea.near-limit-yellow {
+  border-color: color-mix(in srgb, var(--warning) 48%, var(--border));
+}
+
+.composer textarea.near-limit-orange {
+  border-color: color-mix(in srgb, #f97316 60%, var(--border));
+}
+
+.composer textarea.near-limit-red {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.composer-limit-warn {
+  margin-top: 6px;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ─── Composer footer simplified ──────────────────────── */
+.composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* ─── demo-badge ───────────────────────────────────────── */
+.demo-badge {
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+/* ─── Rail toggle tooltip fix ──────────────────────────── */
+.rail-toggle-button.app-tooltip::after {
+  left: auto;
+  right: 0;
+  top: calc(100% + 8px);
+  transform: translate(0, -4px);
+}
+
+.rail-toggle-button.app-tooltip:hover::after {
+  transform: translate(0, 0);
+}
+
+/* ─── Right rail collapsible ───────────────────────────── */
+.workspace-grid.right-collapsed {
+  grid-template-columns: minmax(340px, 380px) minmax(720px, 1fr) 52px;
+}
+
+.workspace-grid.left-collapsed.right-collapsed {
+  grid-template-columns: 52px minmax(820px, 1fr) 52px;
+}
+
+.right-rail-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  margin-bottom: 8px;
+}
+
+.right-collapsed .right-rail-brand-row {
+  justify-content: center;
+}
+
+.right-collapsed .right-rail-body {
+  pointer-events: none;
+  position: absolute;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.right-rail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  transition: opacity 180ms ease;
+}
+
+.right-rail-actions {
+  display: none;
+}
+
+.right-collapsed .right-rail-actions {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
 }
 
 .text-muted {

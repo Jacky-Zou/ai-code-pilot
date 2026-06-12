@@ -4,11 +4,16 @@
 
 import {
   Bot,
-  Code2,
+  BrainCircuit,
+  Copy,
   FolderOpen,
+  GitBranch,
   Loader2,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Search,
   Send,
 } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
@@ -42,6 +47,7 @@ const DEFAULT_AVATAR =
 export function ChatWorkspace() {
   const [selection, setSelection] = useState<ProviderSelection>({ provider: "deepseek", model: "" });
   const [isLeftRailCollapsed, setIsLeftRailCollapsed] = useState(false);
+  const [isRightRailCollapsed, setIsRightRailCollapsed] = useState(false);
   const [projectPath, setProjectPath] = useState(DEFAULT_PROJECT_PATH);
   const [message, setMessage] = useState("");
   const [composerNudge, setComposerNudge] = useState(false);
@@ -114,19 +120,21 @@ export function ChatWorkspace() {
       />
 
       {/* ── 3-column workspace ────────────────────────────────────── */}
-      <section className={`workspace-grid ${isLeftRailCollapsed ? "left-collapsed" : ""}`}>
+      <section className={`workspace-grid ${isLeftRailCollapsed ? "left-collapsed" : ""} ${isRightRailCollapsed ? "right-collapsed" : ""}`}>
 
         {/* Left rail */}
         <aside className="workspace-column left-rail">
           <div className="sidebar-brand-row">
             <button aria-label={isLeftRailCollapsed ? "Expand sidebar" : "AICodePilot home"}
               className="sidebar-logo-button app-tooltip"
+              data-tooltip="Expand sidebar"
               onClick={() => { if (isLeftRailCollapsed) setIsLeftRailCollapsed(false); }}
               type="button">
               <Bot className="sidebar-brand-icon h-5 w-5" aria-hidden="true" />
               <PanelLeftOpen className="sidebar-expand-icon h-4 w-4" aria-hidden="true" />
             </button>
             <button aria-label="Collapse sidebar" className="rail-toggle-button app-tooltip"
+              data-tooltip="Collapse sidebar"
               onClick={() => setIsLeftRailCollapsed(true)} type="button">
               <PanelLeftClose className="h-4 w-4" />
             </button>
@@ -168,15 +176,14 @@ export function ChatWorkspace() {
         <section className="chat-panel">
           <div className="chat-header">
             <div className="flex items-center gap-3">
-              <div className="section-icon"><Code2 className="h-5 w-5" /></div>
+              <div className="section-icon"><BrainCircuit className="h-5 w-5" /></div>
               <div>
-                <h2>Chat</h2>
+                <h2>AI Assistant</h2>
                 <p className="panel-description">{selection.provider} · {selection.model || "default"}</p>
               </div>
             </div>
-            {/* Demo mode notice — authentication is browser-only */}
             {!authUser && (
-              <span className="demo-badge" title="Sign in to start chatting">Demo mode — sign in required</span>
+              <span className="demo-badge" title="Sign in to start chatting">Demo mode</span>
             )}
           </div>
 
@@ -184,7 +191,7 @@ export function ChatWorkspace() {
             {messages.length === 0 && (
               <section className="chat-welcome">
                 <p className="welcome-label">Quick actions</p>
-                <div className="quick-actions-grid">
+                <div className="quick-action-grid">
                   {QUICK_ACTIONS.map((action) => (
                     <button className="quick-action-chip" key={action}
                       onClick={() => setMessage(action)} type="button">
@@ -202,18 +209,38 @@ export function ChatWorkspace() {
                     <Bot className="h-4 w-4" />
                   </div>
                 )}
-                <div className={`message-bubble ${item.muted ? "muted" : ""}`}>
-                  <MarkdownMessage content={item.content} />
-                  {item.response?.tool_calls?.length ? (
-                    <details className="tool-summary">
-                      <summary>{item.response.tool_calls.length} tool call{item.response.tool_calls.length > 1 ? "s" : ""}</summary>
-                      <ul>
-                        {item.response.tool_calls.map((tc, i) => (
-                          <li key={i}><code>{tc.name}</code>{tc.error ? ` ✗ ${tc.error}` : " ✓"}</li>
-                        ))}
-                      </ul>
-                    </details>
-                  ) : null}
+                <div className={`message-bubble ${item.muted ? "muted" : ""} ${item.role === "assistant" && !item.content && isSending ? "thinking" : ""}`}>
+                  {item.role === "assistant" && !item.content && isSending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      {activeToolCalls.length > 0
+                        ? `Calling ${activeToolCalls.filter((t) => !t.done).at(-1)?.tool ?? "tool"}…`
+                        : "Thinking…"}
+                    </>
+                  ) : (
+                    <>
+                      <MarkdownMessage content={item.content} />
+                      {item.response?.tool_calls?.length ? (
+                        <details className="tool-summary">
+                          <summary>{item.response.tool_calls.length} tool call{item.response.tool_calls.length > 1 ? "s" : ""}</summary>
+                          <ul>
+                            {item.response.tool_calls.map((tc, i) => (
+                              <li key={i}><code>{tc.name}</code>{tc.error ? ` ✗ ${tc.error}` : " ✓"}</li>
+                            ))}
+                          </ul>
+                        </details>
+                      ) : null}
+                      <button
+                        className="message-copy-btn"
+                        onClick={() => navigator.clipboard?.writeText(item.content)}
+                        title="Copy message"
+                        type="button"
+                        aria-label="Copy message"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </>
+                  )}
                 </div>
                 {item.role === "user" && (
                   <img alt="" className="user-avatar" src={authUser?.avatarUrl ?? DEFAULT_AVATAR} />
@@ -221,17 +248,6 @@ export function ChatWorkspace() {
               </article>
             ))}
 
-            {isSending && (
-              <article className="message-row assistant">
-                <div className="agent-avatar" aria-hidden="true"><Bot className="h-4 w-4" /></div>
-                <div className="message-bubble thinking">
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  {activeToolCalls.length > 0
-                    ? `Calling ${activeToolCalls.filter((t) => !t.done).at(-1)?.tool ?? "tool"}…`
-                    : "Thinking…"}
-                </div>
-              </article>
-            )}
             {error && <div className="error-box mx-4 mb-3">{error}</div>}
           </div>
 
@@ -239,7 +255,10 @@ export function ChatWorkspace() {
             {composerNudge && <div className="composer-empty-hint">Please enter a message.</div>}
             <textarea
               aria-invalid={composerNudge}
-              className={composerNudge ? "needs-input" : ""}
+              className={[
+                composerNudge ? "needs-input" : "",
+                message.length > 30000 ? "near-limit-red" : message.length > 24000 ? "near-limit-orange" : message.length > 16000 ? "near-limit-yellow" : "",
+              ].filter(Boolean).join(" ")}
               disabled={isSending}
               maxLength={32000}
               onChange={(e) => setMessage(e.target.value)}
@@ -247,10 +266,10 @@ export function ChatWorkspace() {
               placeholder="Ask about your codebase… (Enter to send, Shift+Enter for newline)"
               value={message}
             />
+            {message.length > 30000 && (
+              <div className="composer-limit-warn">Character limit almost reached ({message.length}/32000)</div>
+            )}
             <div className="composer-footer">
-              <span className={message.length > 12000 ? "char-warn" : "char-count"}>
-                {message.length} / 32000
-              </span>
               <button aria-label="Send message" className="send-button" disabled={isSending} type="submit">
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" /> Send</>}
               </button>
@@ -259,9 +278,35 @@ export function ChatWorkspace() {
         </section>
 
         {/* Right rail */}
-        <aside className="workspace-column right-rail">
-          <ToolCallTimeline toolCalls={latestResponse?.tool_calls ?? []} />
-          <CodeReference references={latestResponse?.references ?? []} />
+        <aside className={`workspace-column right-rail ${isRightRailCollapsed ? "right-collapsed" : ""}`}>
+          <div className="right-rail-brand-row">
+            <button
+              aria-label={isRightRailCollapsed ? "Expand right panel" : "Collapse right panel"}
+              className="rail-toggle-button app-tooltip"
+              data-tooltip={isRightRailCollapsed ? "Expand Agent panel" : "Collapse Agent panel"}
+              onClick={() => setIsRightRailCollapsed((v) => !v)}
+              type="button"
+            >
+              {isRightRailCollapsed ? <PanelRightOpen className="h-4 w-4" /> : <PanelRightClose className="h-4 w-4" />}
+            </button>
+          </div>
+
+          {/* Collapsed icons */}
+          <nav className="right-rail-actions" aria-label="Collapsed right panel shortcuts">
+            <button aria-label="Expand Agent Trace" className="collapsed-rail-button app-tooltip"
+              data-tooltip="Agent Trace" onClick={() => setIsRightRailCollapsed(false)} type="button">
+              <GitBranch className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button aria-label="Expand Code Evidence" className="collapsed-rail-button app-tooltip"
+              data-tooltip="Code Evidence" onClick={() => setIsRightRailCollapsed(false)} type="button">
+              <Search className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </nav>
+
+          <div className="right-rail-body">
+            <ToolCallTimeline toolCalls={latestResponse?.tool_calls ?? []} />
+            <CodeReference references={latestResponse?.references ?? []} />
+          </div>
         </aside>
       </section>
 
@@ -275,6 +320,7 @@ export function ChatWorkspace() {
           setCaptchaInput={setCaptchaInput}
           userName={authUser?.name}
           onClose={closeAuth}
+          onNavigate={openAuthMode}
           onSubmit={handleAuthSubmit}
           onAvatarUpload={handleAvatarUpload}
         />

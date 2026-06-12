@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { Boxes, Check, ChevronDown, Globe2, Landmark, Loader2, Lock, RefreshCw } from "lucide-react";
+import { Check, ChevronDown, Globe2, Landmark, Loader2, Lock, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ProviderName } from "@/lib/api";
 import { useProviderConfig } from "@/hooks/useProviderConfig";
@@ -102,14 +102,7 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
   }
 
   return (
-    <section className="panel-card model-provider-panel" aria-label="Model provider">
-      <div className="panel-heading">
-        <div>
-          <h2>Model Center</h2>
-          <p className="panel-description">Choose provider, enter API key, then load models.</p>
-        </div>
-        <Boxes className="h-5 w-5 text-primary" aria-hidden="true" />
-      </div>
+    <div className="model-provider-panel" aria-label="Model provider">
 
       {/* Region tabs */}
       <p className="field-label">Model Provider</p>
@@ -147,16 +140,15 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
         })}
       </div>
 
-      {/* API Key — single row: input + Save button */}
+      {/* API Key — label row + input+button row (mirrors Current Model layout) */}
       <label className="field-label" htmlFor="provider-api-key">API Key</label>
-      <div style={{ display: "flex", gap: "8px", marginBottom: "4px" }}>
+      <div className="provider-field-row">
         <input
           className="field-input"
           id="provider-api-key"
           onChange={(e) => setDraftKey(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleSaveKey(); }}
-          placeholder={savedKey ? "Key saved — enter new to replace" : `${selectedProvider.label} API key…`}
-          style={{ flex: 1 }}
+          placeholder={savedKey ? "✓ Saved — enter new to replace" : `Paste ${selectedProvider.label} key…`}
           type="password"
           value={draftKey}
         />
@@ -164,37 +156,24 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
           className="secondary-button"
           disabled={!draftKey.trim()}
           onClick={handleSaveKey}
-          style={{ flexShrink: 0 }}
           type="button"
         >
           Save
         </button>
       </div>
-      {savedKey && <p className="workspace-hint" style={{ marginBottom: "8px" }}>✓ Key saved for {selectedProvider.label}</p>}
+      {savedKey && <p className="workspace-hint">✓ Key active for {selectedProvider.label}</p>}
 
-      {/* Model select — label + reload button in one flex row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-        <label className="field-label" id="model-select-label" style={{ margin: 0 }}>
-          Current Model
-        </label>
-        <button
-          aria-label="Reload models from provider"
-          className="icon-button compact app-tooltip"
-          data-tooltip={savedKey ? "Load models for this key" : "Save a key first"}
-          disabled={isLoadingModels || !savedKey}
-          onClick={handleFetchModels}
-          type="button"
+      {/* Current Model — same label+field-row layout as API Key */}
+      <label className="field-label" id="model-select-label">Current Model</label>
+      {modelsError && <p className="error-box" style={{ marginBottom: "6px", fontSize: "12px" }}>{modelsError}</p>}
+
+      <div className="provider-field-row">
+        <div
+          className="model-select"
+          onBlur={(e) => { if (!modelMenuRef.current?.contains(e.relatedTarget as Node | null)) setIsModelMenuOpen(false); }}
+          ref={modelMenuRef}
+          style={{ flex: 1 }}
         >
-          {isLoadingModels ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-        </button>
-      </div>
-      {modelsError && <p className="error-box" style={{ marginBottom: "8px", fontSize: "12px" }}>{modelsError}</p>}
-
-      <div
-        className="model-select"
-        onBlur={(e) => { if (!modelMenuRef.current?.contains(e.relatedTarget as Node | null)) setIsModelMenuOpen(false); }}
-        ref={modelMenuRef}
-      >
         <button
           aria-expanded={isModelMenuOpen}
           aria-haspopup="listbox"
@@ -229,11 +208,23 @@ export function ProviderSelector({ value, onChange }: ProviderSelectorProps) {
         {isModelMenuOpen && providerModels.length === 0 && (
           <div className="model-select-menu">
             <p style={{ padding: "10px 12px", margin: 0, color: "var(--muted)", fontSize: "13px" }}>
-              {savedKey ? "Click ↺ above to load models" : "Save an API key, then click ↺"}
+              {savedKey ? "Click ↺ to load models" : "Save an API key, then click ↺"}
             </p>
           </div>
         )}
+        </div>
+        <button
+          aria-label="Reload models from provider"
+          className="secondary-button app-tooltip"
+          data-tooltip={savedKey ? "Load models" : "Save a key first"}
+          disabled={isLoadingModels || !savedKey}
+          onClick={handleFetchModels}
+          style={{ flexShrink: 0, minWidth: 42, padding: "0 10px" }}
+          type="button"
+        >
+          {isLoadingModels ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+        </button>
       </div>
-    </section>
+    </div>
   );
 }
