@@ -4,16 +4,16 @@
 
 import {
   Bot,
-  BrainCircuit,
   Copy,
   FolderOpen,
   GitBranch,
   Loader2,
+  MessagesSquare,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
-  Search,
+  Pin,
   Send,
 } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
@@ -176,7 +176,7 @@ export function ChatWorkspace() {
         <section className="chat-panel">
           <div className="chat-header">
             <div className="flex items-center gap-3">
-              <div className="section-icon"><BrainCircuit className="h-5 w-5" /></div>
+              <div className="section-icon"><MessagesSquare className="h-5 w-5" /></div>
               <div>
                 <h2>AI Assistant</h2>
                 <p className="panel-description">{selection.provider} · {selection.model || "default"}</p>
@@ -299,7 +299,7 @@ export function ChatWorkspace() {
             </button>
             <button aria-label="Expand Code Evidence" className="collapsed-rail-button app-tooltip"
               data-tooltip="Code Evidence" onClick={() => setIsRightRailCollapsed(false)} type="button">
-              <Search className="h-4 w-4" aria-hidden="true" />
+              <Pin className="h-4 w-4" aria-hidden="true" />
             </button>
           </nav>
 

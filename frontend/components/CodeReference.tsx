@@ -1,4 +1,4 @@
-import { Braces, Copy, Search } from "lucide-react";
+import { Braces, Copy, Pin } from "lucide-react";
 import type { CodeReference as CodeReferenceItem } from "@/lib/api";
 import type { Language } from "@/components/ProviderSelector";
 
@@ -31,7 +31,7 @@ export function CodeReference({ references }: CodeReferenceProps) {
           <h2>Code Evidence</h2>
           <p className="panel-description">Referenced files, line numbers, and snippets.</p>
         </div>
-        <Search className="h-5 w-5 text-accent" aria-hidden="true" />
+        <Pin className="h-5 w-5 text-primary" aria-hidden="true" />
       </div>
 
       {references.length === 0 ? (
@@ -52,7 +52,7 @@ export function CodeReference({ references }: CodeReferenceProps) {
               <div className="evidence-header">
                 <div className="min-w-0 flex-1">
                   <div className="evidence-path">
-                    <Braces className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+                    <Braces className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
                     <span>{location}</span>
                   </div>
                   {score ? <div className="mt-1 text-xs text-muted">score {score}</div> : null}

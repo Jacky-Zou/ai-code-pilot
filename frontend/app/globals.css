@@ -275,14 +275,12 @@ button:disabled:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
+  border: 0;
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  color: white;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    color 160ms ease;
+    transform 220ms ease,
+    box-shadow 200ms ease;
 }
 
 .sidebar-logo-button {
@@ -290,12 +288,10 @@ button:disabled:hover {
   height: 42px;
   width: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--primary), #7c3aed);
-  color: white;
 }
 
 .sidebar-logo-button:hover {
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
 }
 
 .sidebar-expand-icon {
@@ -313,36 +309,14 @@ button:disabled:hover {
 }
 
 .collapsed-rail-button:hover {
-  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
-  background: color-mix(in srgb, var(--primary-soft) 78%, var(--panel));
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-  color: var(--primary);
+  transform: rotate(360deg) scale(1.08);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
 }
 
+/* 折叠态图标统一为白色（蓝色渐变底） */
 .collapsed-rail-button svg,
 .sidebar-logo-button svg {
-  transition:
-    color 160ms ease,
-    transform 260ms ease;
-}
-
-.collapsed-rail-button:hover svg,
-.sidebar-logo-button:hover svg {
-  transform: rotate(360deg);
-}
-
-.collapsed-rail-button.workspace-shortcut {
-  color: var(--folder);
-}
-
-.collapsed-rail-button.workspace-shortcut:hover {
-  border-color: color-mix(in srgb, var(--folder) 36%, transparent);
-  background: var(--folder-soft);
-  color: var(--folder);
-}
-
-.collapsed-rail-button:not(.workspace-shortcut) {
-  color: var(--primary);
+  color: white;
 }
 
 .left-collapsed .sidebar-brand-row {
@@ -351,28 +325,17 @@ button:disabled:hover {
   margin-bottom: 12px;
 }
 
-.left-collapsed .rail-toggle-button {
+.left-collapsed .left-rail .rail-toggle-button {
   display: none;
 }
 
 .left-collapsed .sidebar-logo-button {
   display: inline-flex;
-  background: transparent;
-  color: var(--primary);
 }
 
 .left-collapsed .sidebar-logo-button:hover {
-  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
-  background: color-mix(in srgb, var(--primary-soft) 78%, var(--panel));
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-}
-
-.left-collapsed .sidebar-logo-button:hover .sidebar-brand-icon {
-  display: none;
-}
-
-.left-collapsed .sidebar-logo-button:hover .sidebar-expand-icon {
-  display: block;
+  transform: rotate(360deg) scale(1.08);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
 }
 
 .left-collapsed .collapsed-rail-actions {
@@ -602,33 +565,41 @@ button:disabled:hover {
 
 .collapsible-panel-header {
   display: flex;
+  width: 100%;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 9px 12px;
   cursor: pointer;
   user-select: none;
-  min-height: 42px;
+  min-height: 46px;
+  border: 0;
   background: transparent;
+  text-align: left;
   transition: background 140ms ease;
 }
 
 .collapsible-panel-header:hover {
-  background: color-mix(in srgb, var(--primary-soft) 40%, var(--panel));
+  background: color-mix(in srgb, var(--primary-soft) 50%, var(--panel));
 }
 
 .collapsible-panel-logo {
   display: inline-flex;
-  height: 28px;
-  width: 28px;
+  height: 30px;
+  width: 30px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 9px;
   background: linear-gradient(135deg, var(--primary), #7c3aed);
   color: white;
   font-size: 11px;
   position: relative;
-  transition: background 200ms ease;
+  transition: transform 220ms ease, box-shadow 200ms ease;
+}
+
+.collapsible-panel-header:hover .collapsible-panel-logo {
+  transform: rotate(360deg) scale(1.08);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
 }
 
 .collapsible-panel-logo .logo-icon {
@@ -661,6 +632,7 @@ button:disabled:hover {
 .collapsible-panel-titles {
   flex: 1;
   min-width: 0;
+  text-align: left;
 }
 
 .collapsible-panel-titles h3 {
@@ -680,16 +652,6 @@ button:disabled:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.collapsible-panel-chevron {
-  flex: 0 0 auto;
-  color: var(--muted);
-  transition: transform 200ms ease;
-}
-
-.collapsible-panel-chevron.open {
-  transform: rotate(180deg);
 }
 
 .collapsible-panel-body {
@@ -2315,16 +2277,57 @@ button:disabled:hover {
   white-space: nowrap;
 }
 
-/* ─── Rail toggle tooltip fix ──────────────────────────── */
-.rail-toggle-button.app-tooltip::after {
+/* ─── Right rail tooltips (mirror of left rail) ────────────
+   气泡在按钮左侧，尖尖指向右侧，和左侧栏目对称。 */
+.right-rail .app-tooltip::after {
+  position: absolute;
+  right: calc(100% + 11px);
   left: auto;
-  right: 0;
-  top: calc(100% + 8px);
-  transform: translate(0, -4px);
+  top: 50%;
+  z-index: 90;
+  transform: translate(4px, -50%);
+  width: max-content;
+  max-width: 220px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 96%, var(--foreground));
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.11);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  text-align: left;
 }
 
-.rail-toggle-button.app-tooltip:hover::after {
-  transform: translate(0, 0);
+.right-rail .app-tooltip:hover::after,
+.right-rail .app-tooltip:focus-visible::after {
+  transform: translate(0, -50%);
+}
+
+.right-rail .app-tooltip::before {
+  position: absolute;
+  right: calc(100% + 8px);
+  left: auto;
+  top: 50%;
+  z-index: 91;
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  transform: translate(4px, -50%) rotate(45deg);
+  height: 6px;
+  width: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--panel) 96%, var(--foreground));
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.right-rail .app-tooltip:hover::before,
+.right-rail .app-tooltip:focus-visible::before {
+  opacity: 0.72;
+  transform: translate(0, -50%) rotate(45deg);
 }
 
 /* ─── Right rail collapsible ───────────────────────────── */
@@ -2344,8 +2347,21 @@ button:disabled:hover {
   margin-bottom: 8px;
 }
 
+.right-rail-brand-row::after {
+  content: "Agent insights";
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .right-collapsed .right-rail-brand-row {
   justify-content: center;
+}
+
+.right-collapsed .right-rail-brand-row::after {
+  display: none;
 }
 
 .right-collapsed .right-rail-body {

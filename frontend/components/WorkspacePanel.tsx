@@ -4,7 +4,7 @@ import { Database, FileCode2, FolderOpen } from "lucide-react";
 import type { ProjectIndexResponse } from "@/lib/api";
 import { CollapsiblePanel } from "@/components/CollapsiblePanel";
 import { ProviderSelector, type ProviderSelection } from "@/components/ProviderSelector";
-import { WorkspaceTree } from "@/components/WorkspaceHelpers";
+import { ModelCenterIcon, WorkspaceTree } from "@/components/WorkspaceHelpers";
 import type { WorkspaceNode } from "@/hooks/useWorkspaceImport";
 
 interface Props {
@@ -35,7 +35,7 @@ export function WorkspacePanel({
       <CollapsiblePanel
         title="Model Center"
         description="Provider, API key, model."
-        icon={<ModelCenterSvg />}
+        icon={<ModelCenterIcon />}
       >
         <ProviderSelector onChange={onSelectionChange} value={selection} />
       </CollapsiblePanel>
@@ -93,13 +93,5 @@ export function WorkspacePanel({
         {workspaceTree.length > 0 && <WorkspaceTree nodes={workspaceTree} />}
       </CollapsiblePanel>
     </>
-  );
-}
-
-function ModelCenterSvg() {
-  return (
-    <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" width="16">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
