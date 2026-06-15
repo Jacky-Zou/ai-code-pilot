@@ -200,15 +200,18 @@ button:disabled:hover {
 .left-rail,
 .right-rail {
   height: calc(100vh - 116px);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 20;
+  transition: width 220ms ease;
 }
 
 .left-rail {
-  overflow: visible;
   padding: 0 2px 0 0;
-  position: relative;
-  transition: width 220ms ease;
-  z-index: 20;
+}
+
+.right-rail {
+  padding: 0 0 0 2px;
 }
 
 .left-rail-body {
@@ -270,28 +273,53 @@ button:disabled:hover {
   display: none;
 }
 
-.sidebar-logo-button,
+/* 栏目折叠/展开按钮：朴素，无旋转放大特效（旋转放大是板块 logo 专属） */
+.rail-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  width: 38px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.rail-toggle-button:hover {
+  background: color-mix(in srgb, var(--primary-soft) 60%, var(--panel));
+  color: var(--primary);
+}
+
+/* 折叠态板块快捷图标：默认无背景，仅 hover 浮现蓝色背景；图标旋转放大（仅图标，不带气泡） */
 .collapsed-rail-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: 38px;
+  width: 38px;
   border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--primary);
+  transition: background 180ms ease;
+}
+
+.collapsed-rail-button:hover {
   background: linear-gradient(135deg, var(--primary), #7c3aed);
   color: white;
-  transition:
-    transform 220ms ease,
-    box-shadow 200ms ease;
 }
 
-.sidebar-logo-button {
-  display: none;
-  height: 42px;
-  width: 42px;
-  border-radius: 12px;
+.collapsed-rail-button svg {
+  transition: transform 260ms ease;
 }
 
-.sidebar-logo-button:hover {
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
+.collapsed-rail-button:hover svg {
+  transform: rotate(360deg) scale(1.12);
 }
 
 .sidebar-expand-icon {
@@ -302,40 +330,10 @@ button:disabled:hover {
   display: none;
 }
 
-.collapsed-rail-button {
-  height: 38px;
-  width: 38px;
-  border-radius: 11px;
-}
-
-.collapsed-rail-button:hover {
-  transform: rotate(360deg) scale(1.08);
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
-}
-
-/* 折叠态图标统一为白色（蓝色渐变底） */
-.collapsed-rail-button svg,
-.sidebar-logo-button svg {
-  color: white;
-}
-
 .left-collapsed .sidebar-brand-row {
   display: flex;
   justify-content: center;
   margin-bottom: 12px;
-}
-
-.left-collapsed .left-rail .rail-toggle-button {
-  display: none;
-}
-
-.left-collapsed .sidebar-logo-button {
-  display: inline-flex;
-}
-
-.left-collapsed .sidebar-logo-button:hover {
-  transform: rotate(360deg) scale(1.08);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
 }
 
 .left-collapsed .collapsed-rail-actions {
@@ -590,35 +588,33 @@ button:disabled:hover {
   align-items: center;
   justify-content: center;
   border-radius: 9px;
-  background: linear-gradient(135deg, var(--primary), #7c3aed);
-  color: white;
+  /* 默认无背景，仅图标（问题 3） */
+  background: transparent;
+  color: var(--primary);
   font-size: 11px;
   position: relative;
-  transition: transform 220ms ease, box-shadow 200ms ease;
+  transition: background 200ms ease;
 }
 
+/* 鼠标移入整行 header 时，logo 浮现蓝色背景，图标变白 */
 .collapsible-panel-header:hover .collapsible-panel-logo {
-  transform: rotate(360deg) scale(1.08);
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  color: white;
 }
 
-.collapsible-panel-logo .logo-icon {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 160ms ease;
-}
-
+.collapsible-panel-logo .logo-icon,
 .collapsible-panel-logo .toggle-icon {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* 旋转放大只作用于图标本身（问题 4） */
+  transition: opacity 160ms ease, transform 220ms ease;
+}
+
+.collapsible-panel-logo .toggle-icon {
   opacity: 0;
-  transition: opacity 160ms ease;
 }
 
 .collapsible-panel-header:hover .collapsible-panel-logo .logo-icon {
@@ -627,6 +623,7 @@ button:disabled:hover {
 
 .collapsible-panel-header:hover .collapsible-panel-logo .toggle-icon {
   opacity: 1;
+  transform: scale(1.12);
 }
 
 .collapsible-panel-titles {
@@ -2364,21 +2361,28 @@ button:disabled:hover {
   display: none;
 }
 
+.right-rail-body {
+  display: grid;
+  gap: 8px;
+  max-height: calc(100vh - 170px);
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-left: 2px;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
 .right-collapsed .right-rail-body {
+  max-height: none;
+  overflow: visible;
+  padding-left: 0;
   pointer-events: none;
   position: absolute;
   opacity: 0;
+  transform: translateX(10px);
   visibility: hidden;
-}
-
-.right-rail-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  transition: opacity 180ms ease;
 }
 
 .right-rail-actions {
@@ -2389,6 +2393,16 @@ button:disabled:hover {
   display: grid;
   justify-items: center;
   gap: 8px;
+}
+
+/* 右侧 insight-panel-body 内滚动区域 */
+.insight-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .text-muted {

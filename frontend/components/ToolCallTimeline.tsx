@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Clock3, GitBranch, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock3, Loader2 } from "lucide-react";
 import type { ToolResult } from "@/lib/api";
 import type { Language } from "@/components/ProviderSelector";
 
@@ -53,15 +53,7 @@ export function ToolCallTimeline({ isRunning = false, toolCalls }: ToolCallTimel
     : toolCalls;
 
   return (
-    <section className="panel-card insight-panel">
-      <div className="panel-heading">
-        <div>
-          <h2>Agent Trace</h2>
-          <p className="panel-description">Planning, tool execution, and status updates.</p>
-        </div>
-        <GitBranch className="h-5 w-5 text-primary" aria-hidden="true" />
-      </div>
-
+    <div className="insight-panel-body">
       {displayCalls.length === 0 ? (
         <div className="timeline-skeleton">
           <Clock3 className="h-4 w-4" aria-hidden="true" />
@@ -109,6 +101,6 @@ export function ToolCallTimeline({ isRunning = false, toolCalls }: ToolCallTimel
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }

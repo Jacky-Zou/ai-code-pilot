@@ -19,6 +19,7 @@ import {
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { getHealth } from "@/lib/api";
 import { CodeReference } from "@/components/CodeReference";
+import { CollapsiblePanel } from "@/components/CollapsiblePanel";
 import { type ProviderSelection } from "@/components/ProviderSelector";
 import { ToolCallTimeline } from "@/components/ToolCallTimeline";
 import { MarkdownMessage, ModelCenterIcon } from "@/components/WorkspaceHelpers";
@@ -125,19 +126,19 @@ export function ChatWorkspace() {
         {/* Left rail */}
         <aside className="workspace-column left-rail">
           <div className="sidebar-brand-row">
-            <button aria-label={isLeftRailCollapsed ? "Expand sidebar" : "AICodePilot home"}
-              className="sidebar-logo-button app-tooltip"
-              data-tooltip="Expand sidebar"
-              onClick={() => { if (isLeftRailCollapsed) setIsLeftRailCollapsed(false); }}
-              type="button">
-              <Bot className="sidebar-brand-icon h-5 w-5" aria-hidden="true" />
-              <PanelLeftOpen className="sidebar-expand-icon h-4 w-4" aria-hidden="true" />
-            </button>
-            <button aria-label="Collapse sidebar" className="rail-toggle-button app-tooltip"
-              data-tooltip="Collapse sidebar"
-              onClick={() => setIsLeftRailCollapsed(true)} type="button">
-              <PanelLeftClose className="h-4 w-4" />
-            </button>
+            {isLeftRailCollapsed ? (
+              <button aria-label="Expand sidebar" className="rail-toggle-button app-tooltip"
+                data-tooltip="Expand sidebar"
+                onClick={() => setIsLeftRailCollapsed(false)} type="button">
+                <PanelLeftOpen className="h-4 w-4" />
+              </button>
+            ) : (
+              <button aria-label="Collapse sidebar" className="rail-toggle-button app-tooltip"
+                data-tooltip="Collapse sidebar"
+                onClick={() => setIsLeftRailCollapsed(true)} type="button">
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           <nav className="collapsed-rail-actions" aria-label="Collapsed sidebar shortcuts">
@@ -145,7 +146,7 @@ export function ChatWorkspace() {
               data-tooltip="Model Center" onClick={() => setIsLeftRailCollapsed(false)} type="button">
               <ModelCenterIcon />
             </button>
-            <button aria-label="Open workspace" className="collapsed-rail-button workspace-shortcut app-tooltip"
+            <button aria-label="Open workspace" className="collapsed-rail-button app-tooltip"
               data-tooltip="Workspace" onClick={() => setIsLeftRailCollapsed(false)} type="button">
               <FolderOpen className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -277,21 +278,24 @@ export function ChatWorkspace() {
           </form>
         </section>
 
-        {/* Right rail */}
+        {/* Right rail — mirror of left rail */}
         <aside className={`workspace-column right-rail ${isRightRailCollapsed ? "right-collapsed" : ""}`}>
           <div className="right-rail-brand-row">
-            <button
-              aria-label={isRightRailCollapsed ? "Expand right panel" : "Collapse right panel"}
-              className="rail-toggle-button app-tooltip"
-              data-tooltip={isRightRailCollapsed ? "Expand Agent panel" : "Collapse Agent panel"}
-              onClick={() => setIsRightRailCollapsed((v) => !v)}
-              type="button"
-            >
-              {isRightRailCollapsed ? <PanelRightOpen className="h-4 w-4" /> : <PanelRightClose className="h-4 w-4" />}
-            </button>
+            {isRightRailCollapsed ? (
+              <button aria-label="Expand right panel" className="rail-toggle-button app-tooltip"
+                data-tooltip="Expand panel"
+                onClick={() => setIsRightRailCollapsed(false)} type="button">
+                <PanelRightOpen className="h-4 w-4" />
+              </button>
+            ) : (
+              <button aria-label="Collapse right panel" className="rail-toggle-button app-tooltip"
+                data-tooltip="Collapse panel"
+                onClick={() => setIsRightRailCollapsed(true)} type="button">
+                <PanelRightClose className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
-          {/* Collapsed icons */}
           <nav className="right-rail-actions" aria-label="Collapsed right panel shortcuts">
             <button aria-label="Expand Agent Trace" className="collapsed-rail-button app-tooltip"
               data-tooltip="Agent Trace" onClick={() => setIsRightRailCollapsed(false)} type="button">
@@ -304,8 +308,16 @@ export function ChatWorkspace() {
           </nav>
 
           <div className="right-rail-body">
-            <ToolCallTimeline toolCalls={latestResponse?.tool_calls ?? []} />
-            <CodeReference references={latestResponse?.references ?? []} />
+            <CollapsiblePanel side="right" title="Agent Trace"
+              description="Planning, tool execution, and status updates."
+              icon={<GitBranch className="h-4 w-4" />} defaultOpen>
+              <ToolCallTimeline toolCalls={latestResponse?.tool_calls ?? []} />
+            </CollapsiblePanel>
+            <CollapsiblePanel side="right" title="Code Evidence"
+              description="Referenced files, line numbers, and snippets."
+              icon={<Pin className="h-4 w-4" />} defaultOpen>
+              <CodeReference references={latestResponse?.references ?? []} />
+            </CollapsiblePanel>
           </div>
         </aside>
       </section>

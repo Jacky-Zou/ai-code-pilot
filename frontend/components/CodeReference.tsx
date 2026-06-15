@@ -25,15 +25,7 @@ function excerptSnippet(snippet: string | null): string {
 
 export function CodeReference({ references }: CodeReferenceProps) {
   return (
-    <section className="panel-card insight-panel">
-      <div className="panel-heading">
-        <div>
-          <h2>Code Evidence</h2>
-          <p className="panel-description">Referenced files, line numbers, and snippets.</p>
-        </div>
-        <Pin className="h-5 w-5 text-primary" aria-hidden="true" />
-      </div>
-
+    <div className="insight-panel-body">
       {references.length === 0 ? (
         <div className="timeline-skeleton">
           <Braces className="h-4 w-4" aria-hidden="true" />
@@ -74,6 +66,6 @@ export function CodeReference({ references }: CodeReferenceProps) {
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }
