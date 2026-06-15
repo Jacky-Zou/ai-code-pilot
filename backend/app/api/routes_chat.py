@@ -112,7 +112,10 @@ def chat(
 
 
 @router.post("/chat/stream")
-def chat_stream(request: ChatRequest) -> StreamingResponse:
+def chat_stream(
+    request: ChatRequest,
+    injected_agent: AICodePilotAgent = Depends(get_agent),
+) -> StreamingResponse:
     """Stream agent execution as Server-Sent Events.
 
     Each agent step is flushed to the client immediately so the UI can render
@@ -129,7 +132,11 @@ def chat_stream(request: ChatRequest) -> StreamingResponse:
     """
 
     conversation_id = (request.conversation_id or "").strip() or str(uuid.uuid4())
-    agent = _build_session_agent(conversation_id)
+    # Use injected fake when dependency was overridden by a test; otherwise wire session memory.
+    if not isinstance(injected_agent, AICodePilotAgent):
+        agent = injected_agent
+    else:
+        agent = _build_session_agent(conversation_id)
     project_path = normalize_project_path(request.project_path) if request.project_path else None
 
     def event_generator() -> Iterator[str]:

@@ -93,11 +93,18 @@ def parse_sse_frames(raw: str) -> list[dict[str, Any]]:
 
 class TestChatStreamEndpoint:
     def _make_client(self, provider: BaseLLMProvider) -> TestClient:
-        from unittest.mock import patch
+        from app.agent.executor import AgentExecutor
+        from app.api.routes_chat import get_agent
 
         app = create_app()
-        with patch("app.llm.factory.LLMProviderFactory.create", return_value=provider):
-            return TestClient(app, raise_server_exceptions=True)
+
+        def fake_agent() -> "BaseLLMProvider":
+            from app.agent.agent import AICodePilotAgent
+
+            return AICodePilotAgent(executor=AgentExecutor(llm_provider=provider))
+
+        app.dependency_overrides[get_agent] = fake_agent
+        return TestClient(app, raise_server_exceptions=True)
 
     def test_stream_emits_thinking_tool_start_tool_end_done(self, tmp_path) -> None:
         """Full happy-path: thinking → tool_start → tool_end → done."""
