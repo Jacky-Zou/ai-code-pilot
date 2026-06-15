@@ -53,9 +53,13 @@ def chat(
 
     conversation_id = (request.conversation_id or "").strip() or str(uuid.uuid4())
 
-    # Use the injected agent when it carries an explicit llm_provider (i.e. a
-    # test fake was wired in). Fall back to the session-memory path otherwise.
-    if injected_agent.executor.llm_provider is not None:
+    # Use the injected agent when a test fake was wired in — detected either by
+    # the agent not being an AICodePilotAgent at all, or by its executor already
+    # carrying an explicit llm_provider. Fall back to session-memory otherwise.
+    is_test_fake = not isinstance(injected_agent, AICodePilotAgent) or (
+        injected_agent.executor.llm_provider is not None
+    )
+    if is_test_fake:
         agent = injected_agent
     else:
         # Normal path: wire session memory so multi-turn context is preserved.
@@ -126,9 +130,11 @@ def chat_stream(
     """
 
     conversation_id = (request.conversation_id or "").strip() or str(uuid.uuid4())
-    # Use injected agent when it carries an explicit llm_provider (test fake);
-    # otherwise wire session memory.
-    if injected_agent.executor.llm_provider is not None:
+    # Use injected agent when a test fake was wired in; otherwise wire session memory.
+    is_test_fake = not isinstance(injected_agent, AICodePilotAgent) or (
+        injected_agent.executor.llm_provider is not None
+    )
+    if is_test_fake:
         agent = injected_agent
     else:
         agent = _build_session_agent(conversation_id)
