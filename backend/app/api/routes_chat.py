@@ -46,22 +46,16 @@ def chat(
 ) -> ChatResponse:
     """Run the coding Agent for one user message with multi-turn memory.
 
-    When `get_agent` is overridden by a test dependency, the injected fake is
-    used directly (without session memory) so existing test contracts remain
-    intact. In normal production execution, a fresh session-aware executor is
-    constructed from the SessionStore regardless of the injected dependency,
-    because `get_agent` returns a plain AICodePilotAgent with no memory wired.
-
-    The session-aware path is identified by checking whether the injected agent
-    is the bare default instance from `get_agent()` (no override). Tests that
-    override `get_agent` always supply a class that is NOT `AICodePilotAgent`,
-    so we can distinguish the two paths cleanly.
+    When a test overrides `get_agent` with an agent that has an explicit
+    `llm_provider` wired in, that agent is used directly. Otherwise the normal
+    session-memory path builds a fresh agent bound to the conversation id.
     """
 
     conversation_id = (request.conversation_id or "").strip() or str(uuid.uuid4())
 
-    # Use the injected fake when the dependency was overridden by a test.
-    if not isinstance(injected_agent, AICodePilotAgent):
+    # Use the injected agent when it carries an explicit llm_provider (i.e. a
+    # test fake was wired in). Fall back to the session-memory path otherwise.
+    if injected_agent.executor.llm_provider is not None:
         agent = injected_agent
     else:
         # Normal path: wire session memory so multi-turn context is preserved.
@@ -132,8 +126,9 @@ def chat_stream(
     """
 
     conversation_id = (request.conversation_id or "").strip() or str(uuid.uuid4())
-    # Use injected fake when dependency was overridden by a test; otherwise wire session memory.
-    if not isinstance(injected_agent, AICodePilotAgent):
+    # Use injected agent when it carries an explicit llm_provider (test fake);
+    # otherwise wire session memory.
+    if injected_agent.executor.llm_provider is not None:
         agent = injected_agent
     else:
         agent = _build_session_agent(conversation_id)
