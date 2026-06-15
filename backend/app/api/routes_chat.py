@@ -56,9 +56,7 @@ def chat(
     # Use the injected agent when a test fake was wired in — detected either by
     # the agent not being an AICodePilotAgent at all, or by its executor already
     # carrying an explicit llm_provider. Fall back to session-memory otherwise.
-    is_test_fake = not isinstance(injected_agent, AICodePilotAgent) or (
-        injected_agent.executor.llm_provider is not None
-    )
+    is_test_fake = not isinstance(injected_agent, AICodePilotAgent) or (injected_agent.executor.llm_provider is not None)
     if is_test_fake:
         agent = injected_agent
     else:
@@ -131,9 +129,7 @@ def chat_stream(
 
     conversation_id = (request.conversation_id or "").strip() or str(uuid.uuid4())
     # Use injected agent when a test fake was wired in; otherwise wire session memory.
-    is_test_fake = not isinstance(injected_agent, AICodePilotAgent) or (
-        injected_agent.executor.llm_provider is not None
-    )
+    is_test_fake = not isinstance(injected_agent, AICodePilotAgent) or (injected_agent.executor.llm_provider is not None)
     if is_test_fake:
         agent = injected_agent
     else:
