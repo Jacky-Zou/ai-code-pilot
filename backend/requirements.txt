@@ -3,7 +3,7 @@ uvicorn
 pydantic
 pydantic-settings
 python-dotenv
-httpx
+httpx2
 pytest
 ruff
 black
