@@ -312,144 +312,96 @@ AICodePilot is split into five practical layers:
 4. **Tool and retrieval layer**: safe tools for files/search/logs/patches plus a RAG pipeline for repository evidence.
 5. **Persistence layer**: SQLite for conversations and Chroma/JSON/memory vector stores for retrieval data.
 
+Instead of one dense all-in-one diagram, the architecture is shown as three readable views:
+
+| View | Use it to understand |
+|---|---|
+| System map | How the frontend, API, Agent, tools, models, retrieval, and storage fit together |
+| Agent loop | What happens during one user request |
+| RAG pipeline | How repository files become searchable code evidence |
+
+### System map
+
 ```mermaid
-flowchart TB
-  User["Developer / Team"] --> Browser["Next.js Workspace UI"]
+flowchart LR
+  classDef client fill:#eef6ff,stroke:#2563eb,stroke-width:1px,color:#0f172a;
+  classDef api fill:#f0fdf4,stroke:#16a34a,stroke-width:1px,color:#0f172a;
+  classDef agent fill:#fff7ed,stroke:#ea580c,stroke-width:1px,color:#0f172a;
+  classDef model fill:#faf5ff,stroke:#9333ea,stroke-width:1px,color:#0f172a;
+  classDef data fill:#f8fafc,stroke:#64748b,stroke-width:1px,color:#0f172a;
 
-  subgraph UX["Frontend Experience"]
-    Browser
-    ModelCenter["Model Center"]
-    WorkspacePanel["Workspace Indexing"]
-    ChatPanel["AI Assistant"]
-    TracePanel["Agent Trace"]
-    EvidencePanel["Code Evidence"]
-  end
+  User["Developer"]:::client --> UI["Next.js workspace<br/>Model Center · Chat · Trace · Evidence"]:::client
 
-  Browser --> ModelCenter
-  Browser --> WorkspacePanel
-  Browser --> ChatPanel
-  Browser --> TracePanel
-  Browser --> EvidencePanel
+  UI --> API["FastAPI API<br/>chat · stream · projects · models · sessions"]:::api
 
-  subgraph API["FastAPI Backend"]
-    Health["GET /api/health"]
-    Chat["POST /api/chat"]
-    Stream["POST /api/chat/stream"]
-    Projects["POST /api/projects/index\nPOST /api/projects/search"]
-    Models["POST /api/providers/models"]
-    Sessions["GET /api/sessions/{id}/messages\nDELETE /api/sessions/{id}"]
-  end
+  API --> Agent["Agent runtime<br/>executor · memory · events · finalizer"]:::agent
 
-  Browser --> Chat
-  Browser --> Stream
-  Browser --> Projects
-  Browser --> Models
-  Browser --> Sessions
+  Agent --> Tools["Safe tools<br/>files · search · logs · retrieve_code · propose_patch"]:::agent
+  Agent --> Providers["LLM providers<br/>OpenAI · DeepSeek"]:::model
 
-  subgraph Agent["Agent Runtime"]
-    Facade["AICodePilotAgent"]
-    Executor["AgentExecutor\nstep budget + loop detection"]
-    Memory["ConversationMemory\nbounded recent turns"]
-    Planner["Text protocol parser\nfallback path"]
-    Events["AgentEvent stream"]
-  end
+  Tools --> Repo["Local repository<br/>source files · logs · project tree"]:::data
+  Tools --> RAG["Code RAG<br/>index · chunk · embed · retrieve · rerank"]:::data
 
-  Chat --> Facade
-  Stream --> Facade
-  Facade --> Executor
-  Executor <--> Memory
-  Executor -. fallback .-> Planner
-  Executor --> Events
-  Events --> Stream
-
-  subgraph ModelLayer["LLM Provider Layer"]
-    Factory["LLMProviderFactory"]
-    OpenAI["OpenAIProvider"]
-    DeepSeek["DeepSeekProvider"]
-    RemoteLLM["OpenAI-compatible\n/chat/completions"]
-  end
-
-  Executor --> Factory
-  Factory --> OpenAI
-  Factory --> DeepSeek
-  OpenAI --> RemoteLLM
-  DeepSeek --> RemoteLLM
-  Models --> RemoteLLM
-
-  subgraph Tools["Safe Tool Layer"]
-    Registry["ToolRegistry"]
-    FileTools["list_files\nread_file\nproject_tree\nfind_files"]
-    SearchTool["search_text"]
-    RagTool["retrieve_code"]
-    LogTool["analyze_log"]
-    PatchTool["propose_patch\ndiff only"]
-    ShellTool["run_command\noptional allowlist"]
-  end
-
-  Executor --> Registry
-  Registry --> FileTools
-  Registry --> SearchTool
-  Registry --> RagTool
-  Registry --> LogTool
-  Registry --> PatchTool
-  Registry -. ENABLE_SHELL_TOOL=true .-> ShellTool
-
-  subgraph Retrieval["Repository Intelligence / RAG"]
-    Indexer["ProjectIndexer"]
-    Chunker["CodeChunker\n80-line chunks + overlap"]
-    Embeddings["Local hash embeddings\nor OpenAI embeddings"]
-    VectorStore["Chroma / JSON / Memory"]
-    Retriever["CodeRetriever\nTop-K + hybrid rerank"]
-  end
-
-  Projects --> Indexer
-  RagTool --> Retriever
-  Indexer --> Chunker
-  Chunker --> Embeddings
-  Embeddings --> VectorStore
-  VectorStore --> Retriever
-
-  subgraph Storage["Persistence"]
-    SQLite[("SQLite\nconversations + messages")]
-    VectorData[("data/vector_store")]
-  end
-
-  Chat --> SQLite
-  Stream --> SQLite
-  Sessions --> SQLite
-  VectorStore --> VectorData
+  API --> SQLite[("SQLite<br/>conversation history")]:::data
+  RAG --> VectorStore[("Vector store<br/>Chroma · JSON · memory")]:::data
+  Providers --> Remote["OpenAI-compatible<br/>chat completions API"]:::model
 ```
 
-### Agent execution flow
+### Agent loop
 
 ```mermaid
-sequenceDiagram
-  autonumber
-  participant U as User / UI
-  participant A as FastAPI Route
-  participant E as AgentExecutor
-  participant L as LLM Provider
-  participant T as ToolRegistry
-  participant R as Files / RAG / Logs
-  participant D as SQLite
+flowchart LR
+  Start(["User asks a repository-aware question"])
+  Request["Build AgentRequest<br/>message + project_path + provider + model"]
+  Context["Build context<br/>system prompt + recent memory + tool schemas"]
+  LLM["Call provider<br/>chat_with_tools"]
+  Decision{"Model response"}
+  ToolCall["Tool call requested"]
+  Dispatch["ToolRegistry dispatch<br/>validate args + inject project_path"]
+  Result["ToolResult<br/>structured data or error"]
+  Continue["Append result to model context"]
+  Final["Final answer returned"]
+  Clean["Clean answer<br/>extract references + patch suggestions"]
+  Persist["Persist messages<br/>SQLite + bounded memory"]
+  Response(["Return JSON or SSE done event"])
 
-  U->>A: message, project_path, provider, model, api_key
-  A->>E: AgentRequest
-  E->>L: messages + tool schemas
-  alt Model requests tools
-    L-->>E: tool_calls
-    E->>T: validate and dispatch tool
-    T->>R: read, search, retrieve, analyze, or propose diff
-    R-->>T: structured result
-    T-->>E: ToolResult
-    E->>L: append tool result and continue
-  else Model returns final answer
-    L-->>E: final content
-  end
-  E->>E: clean answer, extract references, extract patch suggestions
-  E->>D: persist user and assistant messages
-  E-->>A: AgentResponse
-  A-->>U: JSON response or SSE done event
+  Start --> Request --> Context --> LLM --> Decision
+  Decision -->|tool_calls| ToolCall --> Dispatch --> Result --> Continue --> LLM
+  Decision -->|final content| Final --> Clean --> Persist --> Response
+```
+
+Agent safeguards in this loop:
+
+| Guardrail | Current behavior |
+|---|---|
+| Step budget | `AGENT_MAX_STEPS`, default `10`, validated from `3` to `30` |
+| Loop detection | Identical back-to-back tool calls are detected |
+| Tool boundary | Project path is injected only for project-scoped tools |
+| Fallback path | Text-protocol planner is available when tool calling is unsupported |
+| Memory hygiene | Tool payloads are not stored in rolling memory |
+
+### RAG pipeline
+
+```mermaid
+flowchart LR
+  Project["Backend-visible<br/>project path"]
+  Scan["ProjectIndexer<br/>scan supported files"]
+  Filter["Skip ignored content<br/>.git · node_modules · build · cache · tests"]
+  Chunk["CodeChunker<br/>80-line chunks + overlap"]
+  Embed{"Embedding provider"}
+  Local["Local hash embeddings<br/>zero external key"]
+  OpenAIEmb["OpenAI embeddings<br/>semantic vectors"]
+  Store["Vector store<br/>Chroma · JSON · memory"]
+  Query["User query or<br/>retrieve_code tool"]
+  Retrieve["Top-K retrieval"]
+  Rerank["Hybrid rerank<br/>tokens · paths · source priority"]
+  Evidence["Code evidence<br/>file path · lines · snippet · score"]
+
+  Project --> Scan --> Filter --> Chunk --> Embed
+  Embed -->|EMBEDDING_PROVIDER=local| Local --> Store
+  Embed -->|EMBEDDING_PROVIDER=openai| OpenAIEmb --> Store
+  Query --> Retrieve --> Store
+  Store --> Retrieve --> Rerank --> Evidence
 ```
 
 ## 🤖 Agent Runtime
