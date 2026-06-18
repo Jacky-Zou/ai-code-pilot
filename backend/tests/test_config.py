@@ -28,6 +28,7 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
         "EMBEDDING_MODEL",
         "VECTOR_STORE_PATH",
         "VECTOR_STORE_BACKEND",
+        "DATABASE_URL",
         "PROJECTS_HOST_ROOT",
         "PROJECTS_CONTAINER_ROOT",
         "CORS_ALLOWED_ORIGINS",
@@ -44,6 +45,7 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.deepseek_model == "deepseek-v4-pro"
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.vector_store_path == PROJECT_ROOT / "data/vector_store"
+    assert settings.database_url == f"sqlite:///{(PROJECT_ROOT / 'data/aicodepilot.db').as_posix()}"
     assert settings.vector_store_backend == "chroma"
     assert settings.projects_host_root is None
     assert settings.projects_container_root == "/workspace"
@@ -59,6 +61,7 @@ def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_BASE_URL", " https://proxy.example.com/v1/ ")
     monkeypatch.setenv("EMBEDDING_PROVIDER", "LOCAL")
     monkeypatch.setenv("VECTOR_STORE_PATH", "./tmp/vectors")
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///./tmp/custom.db")
     monkeypatch.setenv("VECTOR_STORE_BACKEND", "JSON")
     monkeypatch.setenv("PROJECTS_HOST_ROOT", "D:/code/projects/")
     monkeypatch.setenv("PROJECTS_CONTAINER_ROOT", "/workspace/")
@@ -74,6 +77,7 @@ def test_settings_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.openai_base_url == "https://proxy.example.com/v1"
     assert settings.embedding_provider == "local"
     assert settings.vector_store_path == PROJECT_ROOT / "tmp/vectors"
+    assert settings.database_url == f"sqlite:///{(PROJECT_ROOT / 'tmp/custom.db').as_posix()}"
     assert settings.vector_store_backend == "json"
     assert settings.projects_host_root == "D:/code/projects"
     assert settings.projects_container_root == "/workspace"

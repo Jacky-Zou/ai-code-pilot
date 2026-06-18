@@ -1,6 +1,6 @@
 from pathlib import Path, PureWindowsPath
 
-from app.core.config import Settings, get_settings
+from app.core.config import PROJECT_ROOT, Settings, get_settings
 from app.core.exceptions import ToolError
 
 
@@ -20,6 +20,8 @@ def normalize_project_path(project_path: str, settings: Settings | None = None) 
         raise ToolError("Project path cannot be empty")
 
     direct_path = Path(raw_path).expanduser()
+    if not direct_path.is_absolute():
+        direct_path = PROJECT_ROOT / direct_path
     if direct_path.exists():
         return str(direct_path.resolve())
 

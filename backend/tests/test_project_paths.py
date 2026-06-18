@@ -2,13 +2,17 @@ from pathlib import Path
 
 import pytest
 
-from app.core.config import Settings
+from app.core.config import PROJECT_ROOT, Settings
 from app.core.exceptions import ToolError
 from app.core.project_paths import normalize_project_path
 
 
 def test_normalize_project_path_accepts_existing_path(tmp_path: Path) -> None:
     assert normalize_project_path(str(tmp_path), settings=Settings(_env_file=None)) == str(tmp_path.resolve())
+
+
+def test_normalize_project_path_resolves_relative_paths_from_project_root() -> None:
+    assert normalize_project_path(".", settings=Settings(_env_file=None)) == str(PROJECT_ROOT.resolve())
 
 
 def test_normalize_project_path_maps_configured_host_root(tmp_path: Path) -> None:

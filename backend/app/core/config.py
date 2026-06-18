@@ -158,7 +158,23 @@ class Settings(BaseSettings):
             raise ValueError("VECTOR_STORE_PATH must point to a project data directory")
         if not self.vector_store_path.is_absolute():
             self.vector_store_path = PROJECT_ROOT / self.vector_store_path
+        self.database_url = self._normalize_database_url(self.database_url)
         return self
+
+    @staticmethod
+    def _normalize_database_url(value: str) -> str:
+        if value in {"sqlite://", "sqlite:///:memory:"}:
+            return value
+        prefix = "sqlite:///"
+        if not value.startswith(prefix):
+            return value
+        db_path = value.removeprefix(prefix)
+        if not db_path or db_path.startswith(":memory:"):
+            return value
+        path = Path(db_path)
+        if path.is_absolute():
+            return value
+        return f"{prefix}{(PROJECT_ROOT / path).as_posix()}"
 
     def default_model_for_provider(self, provider_name: str | None = None) -> str:
         provider = (provider_name or self.llm_provider).strip().lower()
